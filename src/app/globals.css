@@ -260,3 +260,24 @@
     color: var(--color-gold-deep);
   }
 }
+
+/*
+  Hero background photography — slow Ken Burns drift. Layers are deliberately
+  desynced via negative `animation-delay` set inline in `hero.tsx`. This is a
+  decorative backdrop (PLACEHOLDER stock — see `hero-images.ts`) and is
+  neutralised by the global `prefers-reduced-motion` rule above, which freezes
+  the hero on its first frame.
+*/
+@keyframes hero-drift {
+  from {
+    transform: scale(1.03);
+  }
+  to {
+    transform: scale(1.11);
+  }
+}
+
+.hero-drift {
+  animation: hero-drift 18s ease-out infinite alternate;
+  will-change: transform;
+}

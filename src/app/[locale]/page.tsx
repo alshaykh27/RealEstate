@@ -9,7 +9,7 @@ import { TiltCard } from "@/components/motion/tilt-card";
 import { PropertyGrid } from "@/components/properties/property-grid";
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { coverImage, localize, propertyImageUrl } from "@/lib/content";
+import { localize } from "@/lib/content";
 import { getAreas, getPublishedCountsByArea } from "@/lib/data/areas";
 import { getFeaturedProperties } from "@/lib/data/properties";
 import { getSiteSettings } from "@/lib/data/settings";
@@ -45,9 +45,6 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
     ? localize(locale, settings.hero_subhead_en, settings.hero_subhead_ar)
     : dict.hero.subhead;
 
-  const heroCover = featured[0] ? coverImage(featured[0].property_images) : null;
-  const heroImageUrl = heroCover ? propertyImageUrl(heroCover.storage_path) : null;
-
   return (
     <main className="flex flex-1 flex-col">
       <Hero
@@ -56,7 +53,6 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
         headline={heroHeadline}
         subhead={heroSubhead}
         ctaLabel={dict.hero.ctaPrimary}
-        imageUrl={heroImageUrl}
       />
 
       {featured.length > 0 ? (
