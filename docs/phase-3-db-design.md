@@ -1,7 +1,7 @@
 # Darvia — Phase 3 Bilingual Database Design
 
-Status: **APPROVED (with changes) — SQL self-reviewed and shipped as a migration.**
-Not yet applied. Decisions recorded: English default/base; Arabic fully supported (RTL); cookie-based
+Status: **APPLIED & VERIFIED — migration run once on a fresh Supabase project (PostgreSQL 17.11).**
+Decisions recorded: English default/base; Arabic fully supported (RTL); cookie-based
 locale; one shared slug per property; admin UI Arabic-only.
 Self-review (Phase 3 task) hardened the schema: admin-only writes via `public.profiles.is_admin`
 (no longer "any authenticated user"), soft-delete via `properties.deleted_at`, storage/file cap
@@ -174,18 +174,30 @@ The script errors clearly if the user does not exist yet. The app never creates 
 
 ## How it was tested
 
-- **Automated (anon key only):** `npm run verify:phase3` after applying the migration and filling
-  `.env.local`. It asserts published reads succeed, the draft is hidden, anon INSERT/UPDATE/DELETE
-  are rejected on all six tables, `profiles`/`inquiries` are not readable, and Storage rejects
-  anonymous uploads (including oversize >3 MiB and wrong MIME). Results are printed PASS/FAIL.
-- **Not yet run** at the time of writing: pending the user applying the migration to a fresh
-  Supabase project and adding the anon URL/key to `.env.local`.
+Applied to a fresh Supabase project (PostgreSQL 17.11) on 2026-10-10 using a one-off `pg` client
+(run outside the repo) that executed the migration in a **single transaction**. The project was
+confirmed empty first (no `public` tables, no buckets, no enums).
+
+- **Migration:** applied in one `begin … commit`. Result: 6 tables, 3 enums, the `property-images`
+  bucket (`file_size_limit = 3145728`, `allowed_mime_types = jpeg/png/webp`, public read) and 18
+  policies; seed rows areas 6 / properties 4 / property_images 4 / site_settings 1 / profiles 0.
+- **Admin:** the user was created in the dashboard (`auth.users`), then `supabase/grant-admin.sql`
+  set `public.profiles.is_admin = true` (1 admin row).
+- **Automated (anon key only):** `npm run verify:phase3` → **30 passed, 0 failed** — published reads
+  succeed, the draft is hidden, anon INSERT/UPDATE/DELETE are rejected on all six tables,
+  `profiles` and `inquiries` are not readable, and Storage rejects anonymous uploads.
+- **Admin / limits (simulated in SQL, no password):** **9 passed, 0 failed** — bucket
+  `file_size_limit = 3145728` and MIME list confirmed; simulated admin can insert `storage.objects`
+  (RLS allows) while simulated non-admin and anon are denied (`42501`); `property_images.size_bytes`
+  rejects `> 3145728` and `0` (SQLSTATE `23514`) and accepts exactly `3145728`.
 
 ## Known issues / limitations
 
-- The **oversize and wrong-MIME** Storage checks are masked by the anon RLS denial (anonymous
-  uploads are rejected before the bucket limits are reached). To isolate the 3 MiB / MIME rules,
-  re-run those two as an authenticated **admin** once the admin user exists.
+- The **Storage-API-level** size/MIME rejection was not exercised end-to-end: anonymous uploads are
+  blocked by RLS before the bucket limits apply, and an authenticated-admin upload needs a signed-in
+  session (no password is used here). Instead the bucket's `file_size_limit` / `allowed_mime_types`
+  were verified directly, and the equivalent 3 MiB cap was tested on `property_images.size_bytes`
+  (DB check). Re-check the real upload path as a signed-in admin during Phase 5.
 - The **constraints** (duplicate slug, second cover, 21st photo) can only be exercised by an admin
   insert, so they are not covered by the anon-only script.
 - The migration uses `create type` / `create table` without `if not exists`, so it is intended for a

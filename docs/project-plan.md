@@ -9,15 +9,15 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
 
 ## Phases
 
-| #   | Phase                                                             | Status                                |
-| --- | ----------------------------------------------------------------- | ------------------------------------- |
-| 1   | Design & requirements (`docs/phase-1-design.md`)                  | ✅ Approved                           |
-| 2   | Project setup (Next 16 + TS + Tailwind v4 + Supabase clients)     | ✅ Verified                           |
-| —   | **Scope change:** full bilingual ar + en from v1                  | 🔵 Foundation built (this step)       |
-| 3   | Database schema + RLS + seed data (Supabase)                      | 🟡 SQL delivered for review (not run) |
-| 4   | Public site (home, listing+filters, detail, area, about, contact) | Pending                               |
-| 5   | Admin (auth, CRUD, image upload, settings)                        | Pending                               |
-| 6   | SEO/social, polish, Vercel deployment                             | Pending                               |
+| #   | Phase                                                             | Status                             |
+| --- | ----------------------------------------------------------------- | ---------------------------------- |
+| 1   | Design & requirements (`docs/phase-1-design.md`)                  | ✅ Approved                        |
+| 2   | Project setup (Next 16 + TS + Tailwind v4 + Supabase clients)     | ✅ Verified                        |
+| —   | **Scope change:** full bilingual ar + en from v1                  | 🔵 Foundation built (this step)    |
+| 3   | Database schema + RLS + seed data (Supabase)                      | ✅ Applied & verified (2026-10-10) |
+| 4   | Public site (home, listing+filters, detail, area, about, contact) | Pending                            |
+| 5   | Admin (auth, CRUD, image upload, settings)                        | Pending                            |
+| 6   | SEO/social, polish, Vercel deployment                             | Pending                            |
 
 ## Locked decisions
 
@@ -61,9 +61,10 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SITE_URL` (metadata/OG base)
 
-Phase 3 schema is the migration `supabase/migrations/20261010123342_phase_3_schema.sql` — run once
-via the SQL Editor on a fresh project. Grant the admin role with `supabase/grant-admin.sql`, then
-verify with `npm run verify:phase3` (anon key only).
+Phase 3 schema is the migration `supabase/migrations/20261010123342_phase_3_schema.sql` — applied once
+on the fresh project. The admin role was granted with `supabase/grant-admin.sql`, and verification ran
+with `npm run verify:phase3` (anon key only). Applying the migration used a one-off `SUPABASE_DB_URL`
+(a Postgres connection string) kept only in `.env.local`; the running app does **not** need it.
 
 ## Quality gates
 
@@ -71,6 +72,10 @@ verify with `npm run verify:phase3` (anon key only).
 
 ## Open items / blockers
 
-- **Phase 3 not yet applied:** needs a live Supabase project (URL + anon key). No local Supabase is
-  possible here (no Docker / Supabase CLI / psql). The user runs the migration in the dashboard SQL
-  editor; no DB connection string is used.
+- **Phase 3 applied & verified** on 2026-10-10 (see `docs/phase-3-db-design.md` → "How it was tested").
+- **Rotate the database password** now that the migration is applied, and remove `SUPABASE_DB_URL`
+  from `.env.local` (only needed for migration/admin one-offs; the app uses the public env vars).
+- **Dependency gap (must fix before deploy):** `@supabase/ssr` and `@supabase/supabase-js` are present
+  in `node_modules` but **not declared in `package.json`** — a clean install / Vercel build will fail.
+  Add both to `dependencies`.
+- The 20-photo cap is still a Phase 1 assumption to confirm.
