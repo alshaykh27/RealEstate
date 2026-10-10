@@ -1,26 +1,249 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  Darvia design tokens — SINGLE SOURCE OF TRUTH.
+  Supersedes the earlier gold/charcoal-only palette entirely. Do not reintroduce
+  #C9A24B or the old tokens. Components must use these tokens, never raw hex.
+
+  Tailwind v4 exposes every `--color-*` below as utilities (bg-, text-, border-,
+  outline-, ring-, fill-, stroke-). `--shadow-*` become shadow-* utilities.
+*/
+@theme {
+  /* ── Brand · Dark Luxury ─────────────────────────────── */
+  --color-obsidian: #101112;
+  --color-charcoal: #191b1f;
+  --color-charcoal-elevated: #22252a;
+
+  /* ── Brand · Signature Gold ──────────────────────────── */
+  --color-gold: #c5a46d;
+  --color-gold-light: #d9bd8a;
+  --color-gold-deep: #987747;
+  --color-gold-soft: #f3ebdd;
+
+  /* ── Brand · Premium Navy ────────────────────────────── */
+  --color-navy: #142b45;
+  --color-navy-deep: #0d1b2a;
+  --color-navy-muted: #526a82;
+  --color-navy-pale: #eaf0f5;
+  --color-navy-hover: #1d3b5c;
+
+  /* ── Warm Neutrals ───────────────────────────────────── */
+  --color-ivory: #f8f6f1;
+  --color-cream: #f1ede5;
+  --color-beige: #e5ded2;
+  --color-warmgray: #c7c2b9;
+
+  /* ── Backgrounds ─────────────────────────────────────── */
+  --color-background: #f8f6f1;
+  --color-background-dark: #101112;
+
+  /* ── Surfaces ────────────────────────────────────────── */
+  --color-surface: #ffffff;
+  --color-surface-ivory: #f8f6f1;
+  --color-surface-cream: #f1ede5;
+  --color-surface-beige: #e5ded2;
+  --color-surface-dark: #191b1f;
+  --color-surface-elevated: #22252a;
+  --color-surface-gold: #f3ebdd;
+  --color-surface-blue: #eaf0f5;
+
+  /* ── Text ────────────────────────────────────────────── */
+  /* On light backgrounds */
+  --color-ink: #202328;
+  --color-ink-secondary: #62666d;
+  --color-ink-muted: #777b82;
+  /* On dark backgrounds */
+  --color-on-dark: #f8f6f1;
+  --color-on-dark-secondary: #c5c7cb;
+  --color-on-dark-muted: #9a9ea5;
+
+  /* ── Borders ─────────────────────────────────────────── */
+  --color-line: #e5ded2;
+  --color-line-strong: #d8d4cc;
+  --color-line-dark: #343840;
+
+  /* ── Primary action (champagne gold) ─────────────────── */
+  --color-action-primary: #c5a46d;
+  --color-action-primary-hover: #d9bd8a;
+  --color-action-primary-fg: #101112;
+
+  /* ── Secondary action (charcoal) ─────────────────────── */
+  --color-action-secondary: #191b1f;
+  --color-action-secondary-hover: #343840;
+  --color-action-secondary-fg: #ffffff;
+
+  /* ── Secondary action (navy) ─────────────────────────── */
+  --color-action-navy: #142b45;
+  --color-action-navy-hover: #1d3b5c;
+  --color-action-navy-fg: #ffffff;
+
+  /* ── Status · semantic ───────────────────────────────── */
+  --color-success: #237a57;
+  --color-success-surface: #e8f4ed;
+  --color-warning: #a96712;
+  --color-warning-surface: #fff3db;
+  --color-error: #b4232f;
+  --color-error-surface: #fcebed;
+  --color-info: #285f8f;
+  --color-info-surface: #eaf2fa;
+  --color-neutral: #667085;
+  --color-neutral-surface: #f0f1f3;
+
+  /* ── Contact brand exception (SCOPED) ────────────────────
+     Official WhatsApp/Facebook colours are recognition-critical.
+     Use ONLY for the WhatsApp/Facebook contact icons & buttons —
+     never for general UI. All other UI stays on the system above. */
+  --color-whatsapp: #25d366;
+  --color-facebook: #1877f2;
+
+  /* ── Focus ring ──────────────────────────────────────── */
+  --color-focus-ring: #142b45; /* = navy, for light surfaces */
+  --color-focus-ring-inverse: #d9bd8a; /* = gold-light, for dark surfaces */
+
+  /* ── Overlay ─────────────────────────────────────────── */
+  --color-overlay: #101112; /* use with opacity, e.g. bg-overlay/45 */
+
+  /* ── Shadows ─────────────────────────────────────────── */
+  --shadow-card: 0 1px 2px rgb(16 17 18 / 0.06), 0 8px 24px rgb(16 17 18 / 0.08);
+  --shadow-elevated: 0 12px 32px rgb(16 17 18 / 0.12);
+
+  /* ── Typography (set via next/font in the root layout) ─ */
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    color-scheme: light;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    @apply bg-background text-ink font-sans antialiased;
+  }
+
+  /* Locale-aware type: Tajawal + IBM Plex Sans Arabic for Arabic, Inter for
+     Latin (English). Set on <html lang> so the values cascade to the whole doc. */
+  html[lang="ar"] {
+    --font-sans: var(--font-body);
+    --font-heading: var(--font-display);
+  }
+
+  html[lang="en"] {
+    --font-sans: var(--font-latin);
+    --font-heading: var(--font-latin);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Dark sections opt in via `.on-dark` for a visible gold focus ring */
+  .on-dark :focus-visible {
+    outline-color: var(--color-focus-ring-inverse);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Buttons — token-driven; supports hover + focus-visible + disabled/loading.
+     Loading: set aria-busy="true" (pairs with a spinner) to dim + block input. */
+  .btn {
+    @apply font-heading inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-center font-medium transition-colors select-none;
+    background-color: var(--btn-bg);
+    color: var(--btn-fg);
+    border: 1px solid var(--btn-border, transparent);
+  }
+
+  .btn:hover {
+    background-color: var(--btn-bg-hover);
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled="true"],
+  .btn[aria-busy="true"] {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .btn-primary {
+    --btn-bg: var(--color-action-primary);
+    --btn-fg: var(--color-action-primary-fg);
+    --btn-bg-hover: var(--color-action-primary-hover);
+  }
+
+  .btn-secondary-dark {
+    --btn-bg: var(--color-action-secondary);
+    --btn-fg: var(--color-action-secondary-fg);
+    --btn-bg-hover: var(--color-action-secondary-hover);
+  }
+
+  .btn-secondary-light {
+    --btn-bg: var(--color-surface);
+    --btn-fg: var(--color-ink);
+    --btn-border: var(--color-line-strong);
+    --btn-bg-hover: var(--color-cream);
+  }
+
+  .btn-navy {
+    --btn-bg: var(--color-action-navy);
+    --btn-fg: var(--color-action-navy-fg);
+    --btn-bg-hover: var(--color-action-navy-hover);
+  }
+
+  /* Contact-only brand buttons (SCOPED). Hover uses a brightness shift so we
+     introduce no colours beyond the two approved brand tokens. */
+  .btn-whatsapp {
+    --btn-bg: var(--color-whatsapp);
+    --btn-fg: #ffffff;
+    --btn-bg-hover: var(--color-whatsapp);
+  }
+
+  .btn-facebook {
+    --btn-bg: var(--color-facebook);
+    --btn-fg: #ffffff;
+    --btn-bg-hover: var(--color-facebook);
+  }
+
+  .btn-whatsapp:hover,
+  .btn-facebook:hover {
+    filter: brightness(0.94);
+  }
+
+  /* Property status badges — colour is never the only signal; always label. */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+  }
+
+  .badge-available {
+    background-color: var(--color-success-surface);
+    color: var(--color-success);
+  }
+
+  .badge-sold {
+    background-color: var(--color-neutral-surface);
+    color: var(--color-neutral);
+  }
+
+  .badge-rented {
+    background-color: var(--color-info-surface);
+    color: var(--color-info);
+  }
+
+  .badge-draft {
+    background-color: var(--color-cream);
+    color: var(--color-ink-muted);
+  }
+
+  .badge-featured {
+    background-color: var(--color-surface-gold);
+    color: var(--color-gold-deep);
+  }
 }
