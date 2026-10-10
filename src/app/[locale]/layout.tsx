@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans_Arabic, Inter, Tajawal } from "next/font/google";
 import { notFound } from "next/navigation";
+import { SiteFooter, type ContactInfo } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { WhatsAppFab } from "@/components/layout/whatsapp-fab";
 import { dirFor, isLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { localize } from "@/lib/content";
+import { getSiteSettings } from "@/lib/data/settings";
 import "../globals.css";
 
 const tajawal = Tajawal({
@@ -48,7 +52,18 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
 export default async function LocaleLayout({ children, params }: LayoutProps<"/[locale]">) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+  const [dict, settings] = await Promise.all([getDictionary(locale), getSiteSettings()]);
+
+  const brand = settings
+    ? localize(locale, settings.brand_name_en, settings.brand_name_ar)
+    : dict.brand;
+
+  const contact: ContactInfo = {
+    whatsapp: settings?.whatsapp_number ?? null,
+    phone: settings?.phone ?? null,
+    email: settings?.email ?? null,
+    facebook: settings?.facebook_url ?? null,
+  };
 
   return (
     <html
@@ -57,8 +72,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
       className={`${tajawal.variable} ${ibmPlexSansArabic.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <SiteHeader locale={locale} brand={dict.brand} nav={dict.nav} language={dict.language} />
+        <SiteHeader locale={locale} brand={brand} nav={dict.nav} language={dict.language} />
         {children}
+        <SiteFooter locale={locale} brand={brand} dict={dict} contact={contact} />
+        <WhatsAppFab number={contact.whatsapp} label={dict.hero.ctaWhatsapp} />
       </body>
     </html>
   );

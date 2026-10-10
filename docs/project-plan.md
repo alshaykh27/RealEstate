@@ -73,6 +73,9 @@ with `npm run verify:phase3` (anon key only). Applying the migration used a one-
 ## Open items / blockers
 
 - **Phase 3 applied & verified** on 2026-10-10 (see `docs/phase-3-db-design.md` → "How it was tested").
+- **Phase 4 (public site) implemented, verified, approved & pushed** on 2026-10-10: bilingual home,
+  listings + filters, detail with similar-properties (cross-area fallback, clearly area-labeled),
+  areas index/detail, about, contact, localized 404s, real data layer via anon Supabase reads.
 - ~~Rotate the database password and remove `SUPABASE_DB_URL` from `.env.local`.~~ **Done** (rotated;
   `SUPABASE_DB_URL` removed — the app uses only the public env vars).
 - ~~Dependency gap.~~ **Fixed:** `@supabase/ssr`, `@supabase/supabase-js`, `clsx` and `tailwind-merge`
@@ -87,3 +90,6 @@ with `npm run verify:phase3` (anon key only). Applying the migration used a one-
       (anonymous uploads are RLS-blocked before the limits apply). See `docs/phase-3-db-design.md`
       → "Known issues / limitations".
 - [ ] Confirm the real photo-upload path compresses to WebP client-side and enforces the 20-photo cap.
+- [ ] Replace the seed placeholder rows and their fake storage paths with **real images** before any
+      launch — published `is_sample` rows are publicly visible and currently render the branded
+      placeholder (Phase 3 design doc → Launch checklist).
