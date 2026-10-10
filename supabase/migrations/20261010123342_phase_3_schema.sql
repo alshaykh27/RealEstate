@@ -1,20 +1,26 @@
 -- =============================================================================
--- Darvia — Phase 3 schema, constraints, indexes, RLS policies, and seed data
+-- Darvia — Phase 3 migration: schema, constraints, indexes, RLS, storage, seed
 -- -----------------------------------------------------------------------------
--- Review-only: nothing here runs automatically. To apply, paste this whole file
--- into the Supabase SQL Editor on a FRESH project and run it once.
+-- Apply ONCE on a FRESH Supabase project. Two ways:
+--   1. SQL Editor: paste this whole file and Run (it is wrapped in begin/commit).
+--   2. Supabase CLI: `supabase db push` (the CLI runs each migration inside its
+--      own transaction; the begin/commit below then becomes a harmless nested
+--      pair — use the SQL Editor path if you want exactly one transaction).
 --
 -- Locale model: English is the base (required); Arabic (_ar) columns are optional
 -- and fall back to English in the application layer. One shared slug per property.
 --
--- ASSUMED LIMITS (from Phase 1 — confirm the exact numbers before launch):
+-- MEDIA LIMITS (storage keeps these hard, unchanged by the client):
 --   * maximum 20 photos per property
---   * maximum 10 MiB (10485760 bytes) per image file
+--   * maximum 3 MiB (3145728 bytes) per stored image file
 --   * allowed image types: image/jpeg, image/png, image/webp
--- The same numbers are enforced both on property_images.size_bytes and on the
--- Supabase Storage bucket.
+--     (images are compressed client-side to WebP before upload)
+-- The same numbers are enforced on property_images.size_bytes and on the
+-- Supabase Storage bucket. Storage writes are admin-only (see public.is_admin()).
 --
--- is_sample rows and their storage objects must be removed before launch
+-- is_sample marks placeholder rows to remove before launch. It does NOT affect
+-- visibility: public read is governed solely by is_published + deleted_at (null).
+-- Remove every is_sample row and its storage objects before launch
 -- (see docs/project-plan.md launch checklist).
 -- =============================================================================
 
@@ -43,6 +49,42 @@ begin
   new.updated_at := now();
   return new;
 end;
+$$;
+
+-- -----------------------------------------------------------------------------
+-- profiles
+--   One row per authenticated user. The owner's row carries is_admin = true,
+--   which is what every write policy checks. Anon cannot read this table at all;
+--   a signed-in non-admin can only read/update their own row and can never set
+--   is_admin = true for themselves (see the with-check clauses below).
+--   The owner is bootstrapped by an INSERT run in the Supabase SQL editor (as
+--   the postgres role, which bypasses RLS), never from the app.
+-- -----------------------------------------------------------------------------
+create table public.profiles (
+  id           uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  is_admin     boolean not null default false,
+  display_name text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create trigger profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
+
+-- Admin check used by every write policy. SECURITY DEFINER so it can read
+-- public.profiles regardless of the caller's RLS, with a fixed search_path.
+create function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public, pg_temp
+stable
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and is_admin
+  );
 $$;
 
 -- -----------------------------------------------------------------------------
@@ -112,7 +154,8 @@ create table public.properties (
 
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
-  published_at        timestamptz
+  published_at        timestamptz,
+  deleted_at          timestamptz
 );
 
 create index properties_area_idx       on public.properties (area_id);
@@ -121,7 +164,7 @@ create index properties_listing_idx    on public.properties (listing_type);
 create index properties_status_idx     on public.properties (status);
 create index properties_price_idx      on public.properties (price);
 create index properties_created_idx    on public.properties (created_at desc);
-create index properties_public_idx     on public.properties (is_published, is_sample);
+create index properties_public_idx     on public.properties (is_published, is_sample, deleted_at);
 create index properties_features_en_idx on public.properties using gin (features_en);
 
 create trigger properties_set_updated_at
@@ -178,7 +221,7 @@ create table public.property_images (
   alt_ar       text,
   width        integer check (width > 0),
   height       integer check (height > 0),
-  size_bytes   bigint not null check (size_bytes > 0 and size_bytes <= 10485760),
+  size_bytes   bigint not null check (size_bytes > 0 and size_bytes <= 3145728),
   is_cover     boolean not null default false,
   sort_order   integer not null default 0,
   created_at   timestamptz not null default now()
@@ -259,56 +302,70 @@ create trigger site_settings_set_updated_at
 
 -- =============================================================================
 -- Row Level Security
---   Public (anon) reads see published, non-sample rows only.
---   Writes require an authenticated session (the single owner account).
---   RLS acts on language-neutral columns; localization happens after the fetch.
+--   Public (anon) reads see published, non-deleted rows only.
+--   Every write is restricted to an admin (public.is_admin(), i.e. a profiles
+--   row with is_admin = true) — never merely "any authenticated user".
+--   profiles is not readable by anon at all. RLS acts on language-neutral
+--   columns; localization happens after the fetch.
 -- =============================================================================
 alter table public.areas                 enable row level security;
 alter table public.properties            enable row level security;
 alter table public.property_images       enable row level security;
 alter table public.property_slug_history enable row level security;
+alter table public.profiles              enable row level security;
 alter table public.site_settings         enable row level security;
+
+-- profiles
+--   Anon: no policy -> denied. A signed-in non-admin may create/read/update
+--   only their own row and can never flip is_admin to true (with-check guards).
+--   Admins may read and manage every profile. The owner is seeded via the SQL
+--   editor as postgres (bypasses RLS), not through these policies.
+create policy profiles_read_own on public.profiles
+  for select to authenticated using (id = auth.uid());
+create policy profiles_insert_own on public.profiles
+  for insert to authenticated with check (id = auth.uid() and not is_admin);
+create policy profiles_update_own on public.profiles
+  for update to authenticated using (id = auth.uid())
+  with check (id = auth.uid() and not is_admin);
+create policy profiles_admin_all on public.profiles
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- areas
 create policy areas_public_read on public.areas
   for select using (is_active);
-create policy areas_admin_write on public.areas
-  for all to authenticated using (true) with check (true);
+create policy areas_admin_all on public.areas
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- properties
 create policy properties_public_read on public.properties
-  for select using (is_published and not is_sample);
-create policy properties_admin_read on public.properties
-  for select to authenticated using (true);
-create policy properties_admin_write on public.properties
-  for all to authenticated using (true) with check (true);
+  for select using (is_published and deleted_at is null);
+create policy properties_admin_all on public.properties
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
--- property_images (public sees images of published, non-sample properties only)
+-- property_images (public sees images of published, non-deleted properties)
 create policy property_images_public_read on public.property_images
   for select using (
     exists (
       select 1 from public.properties p
       where p.id = property_images.property_id
         and p.is_published
-        and not p.is_sample
+        and p.deleted_at is null
     )
   );
-create policy property_images_admin_read on public.property_images
-  for select to authenticated using (true);
-create policy property_images_admin_write on public.property_images
-  for all to authenticated using (true) with check (true);
+create policy property_images_admin_all on public.property_images
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- property_slug_history (public read so anonymous 301 redirects resolve)
 create policy slug_history_public_read on public.property_slug_history
   for select using (true);
-create policy slug_history_admin_write on public.property_slug_history
-  for all to authenticated using (true) with check (true);
+create policy slug_history_admin_all on public.property_slug_history
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- site_settings
 create policy site_settings_public_read on public.site_settings
   for select using (true);
-create policy site_settings_admin_write on public.site_settings
-  for all to authenticated using (true) with check (true);
+create policy site_settings_admin_all on public.site_settings
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- =============================================================================
 -- Supabase Storage: one public-read bucket with the same limits
@@ -318,22 +375,23 @@ values (
   'property-images',
   'property-images',
   true,
-  10485760,
+  3145728,
   array['image/jpeg', 'image/png', 'image/webp']
 )
 on conflict (id) do update
   set file_size_limit   = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
+-- Storage: public read; insert/update/delete admin-only.
 create policy property_images_storage_public_read on storage.objects
   for select using (bucket_id = 'property-images');
 create policy property_images_storage_admin_insert on storage.objects
-  for insert to authenticated with check (bucket_id = 'property-images');
+  for insert to authenticated with check (bucket_id = 'property-images' and public.is_admin());
 create policy property_images_storage_admin_update on storage.objects
-  for update to authenticated using (bucket_id = 'property-images')
-  with check (bucket_id = 'property-images');
+  for update to authenticated using (bucket_id = 'property-images' and public.is_admin())
+  with check (bucket_id = 'property-images' and public.is_admin());
 create policy property_images_storage_admin_delete on storage.objects
-  for delete to authenticated using (bucket_id = 'property-images');
+  for delete to authenticated using (bucket_id = 'property-images' and public.is_admin());
 
 -- =============================================================================
 -- Seed data — idempotent; every listing is flagged is_sample = true
@@ -407,6 +465,19 @@ values
     array['Rooftop terrace', 'Two parking spots'],
     array['تراس على السطح', 'موقفان للسيارات'],
     8500000, 260, 4, 3, 0, 2016, true, false, true
+  ),
+  -- A deliberately UNPUBLISHED sample (draft), so the verification script can
+  -- prove that drafts are not publicly readable.
+  (
+    '00000000-0000-4000-b000-000000000004', 'sample-draft-unpublished',
+    '00000000-0000-4000-a000-000000000002', 'apartment', 'sale', 'available',
+    'Draft Apartment (unpublished)', 'شقة مسودة (غير منشورة)',
+    'This row is is_published = false and must never be public.',
+    'هذا الصف غير منشور ولا يجب أن يظهر للعامة.',
+    'New Cairo', 'القاهرة الجديدة',
+    array['Draft only'],
+    array['مسودة فقط'],
+    1000, 100, 2, 1, 1, 2020, false, false, true
   )
 on conflict (id) do nothing;
 

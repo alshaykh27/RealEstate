@@ -38,15 +38,19 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
   never blocks publishing.
 - **Slug history:** slugs are generated once from the English title and edited manually only;
   every previous slug is kept in `property_slug_history` for 301 redirects and cannot be reused.
-- **Media limits:** max 20 photos per property, max 10 MiB per image, types JPEG/PNG/WebP — enforced
-  in the DB and the storage bucket. ⚠️ Exact Phase 1 numbers to be confirmed.
-- **Launch cleanup:** all `is_sample` rows and their storage objects must be removed before launch.
+- **Media limits:** max 20 photos per property, max 3 MiB per stored image, types JPEG/PNG/WebP
+  (client compresses to WebP before upload) — enforced in the DB and the storage bucket.
+  ⚠️ The 20-photo count is still to be confirmed against Phase 1.
+- **Admin role:** `public.profiles.is_admin` (checked via the `security definer` `public.is_admin()`
+  helper). All writes require an admin; never "any authenticated user".
+- **Launch cleanup:** all `is_sample` rows and their storage objects must be removed before launch
+  (`is_sample` does not hide rows from the public site).
 - **Admin:** unprefixed (`/admin/...`), excluded from the locale redirect. **Admin UI language:
   Arabic-only (RTL)**; the content-authoring fields remain bilingual (English base, Arabic optional).
 - **Contact:** WhatsApp + Facebook only (no inquiry form). Contact brand colours are a scoped
   exception (see `docs/phase-1-design.md` §2).
 - **Media:** photos only (no video).
-- **Sample data:** flagged `is_sample`, shown only in admin, never presented as genuine.
+- **Sample data:** flagged `is_sample` for pre-launch removal; not hidden by RLS.
 - **i18n approach:** lightweight custom dictionaries (no `next-intl` dependency).
 
 ## Environment
@@ -57,7 +61,9 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SITE_URL` (metadata/OG base)
 
-Phase 3 SQL lives at `supabase/phase-3.sql` — review only; it is not run automatically.
+Phase 3 schema is the migration `supabase/migrations/20261010123342_phase_3_schema.sql` — run once
+via the SQL Editor on a fresh project. Grant the admin role with `supabase/grant-admin.sql`, then
+verify with `npm run verify:phase3` (anon key only).
 
 ## Quality gates
 
@@ -65,6 +71,6 @@ Phase 3 SQL lives at `supabase/phase-3.sql` — review only; it is not run autom
 
 ## Open items / blockers
 
-- **Phase 3 blocked:** needs a live Supabase project (URL + anon key). No local Supabase is
-  possible here (no Docker / Supabase CLI / psql). DDL + RLS + seed also need a way to run SQL
-  (dashboard SQL editor, or `SUPABASE_DB_URL`/service role for migrations).
+- **Phase 3 not yet applied:** needs a live Supabase project (URL + anon key). No local Supabase is
+  possible here (no Docker / Supabase CLI / psql). The user runs the migration in the dashboard SQL
+  editor; no DB connection string is used.

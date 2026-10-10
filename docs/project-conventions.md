@@ -25,6 +25,11 @@ src/
     utils.ts        cn() helper (clsx + tailwind-merge)
   types/            shared TS types (database row types generated from Supabase)
   proxy.ts          locale detection + redirect (Next 16 renamed middleware → proxy)
+supabase/
+  migrations/       versioned SQL migrations (single source of truth for the schema)
+  grant-admin.sql   edit-email helper to grant public.profiles.is_admin
+scripts/
+  verify-phase-3.mjs  anon-key REST/Storage verification (npm run verify:phase3)
 docs/               phase documents (this one, phase-1-design.md, project-plan.md)
 ```
 
@@ -55,7 +60,7 @@ docs/               phase documents (this one, phase-1-design.md, project-plan.m
 ## Data access rules
 
 - **Public reads** — server components query with the anon client/reserved role; RLS
-  restricts results to published, non-sample rows.
+  restricts results to published, non-deleted rows (`is_published and deleted_at is null`).
 - **Admin writes** — server-only. Auth is always re-checked server-side; never trust the
   client. Supabase `service_role` key must NEVER appear in browser code or `NEXT_PUBLIC_*`.
 - Reads of private data must never be exposed through public queries.
@@ -69,12 +74,16 @@ follow`; a page missing **both** the Arabic title and description → `noindex, 
   from the sitemap. Admin warns but never blocks publishing.
 - **Slugs:** generated once from the English title, edited manually only. Previous slugs live in
   `property_slug_history` and 301-redirect; a historical slug is never reused.
-- **Media limits:** max **20** photos per property, max **10 MiB** per image, types JPEG/PNG/WebP —
-  enforced in the DB, the Supabase Storage bucket, and the upload UI. ⚠️ confirm the exact Phase 1
-  numbers.
+- **Media limits:** max **20** photos per property, max **3 MiB** per stored image, types
+  JPEG/PNG/WebP (client compresses to WebP before upload) — enforced in the DB, the Supabase Storage
+  bucket, and the upload UI. ⚠️ confirm the 20-photo count against Phase 1.
+- **Admin writes:** every write requires an admin — `public.profiles.is_admin` via the
+  `security definer` `public.is_admin()` helper. Never "any authenticated user". Later: `/admin` UI.
+- **Soft delete:** `properties.deleted_at`; public reads exclude non-null `deleted_at`.
 - **Alt text:** defaults to the property title; still overridable per image and per locale.
-- **Sample data:** every placeholder row is `is_sample`; the public site never shows it, and all
-  sample rows + files are removed before launch.
+- **Sample data:** every placeholder row is `is_sample`. It marks rows for **removal before launch**
+  and does **not** hide them (public read is governed by `is_published` + `deleted_at`). Remove all
+  sample rows + files before launch.
 
 ## Environment variables
 
@@ -114,4 +123,5 @@ follow`; a page missing **both** the Arabic title and description → `noindex, 
   content is required, Arabic is optional per field and falls back to English. No locale-specific
   copy hardcoded into logic/conditions.
 - Do not add libraries speculatively; keep the dependency set minimal.
-- Sample/placeholder data must be flagged `is_sample` and never shown as genuine.
+- Sample/placeholder data must be flagged `is_sample` and removed before launch (it is not hidden by
+  RLS).

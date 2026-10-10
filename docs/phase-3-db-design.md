@@ -1,8 +1,21 @@
 # Darvia — Phase 3 Bilingual Database Design
 
-Status: **APPROVED (with changes) — SQL delivered at `supabase/phase-3.sql` for review.**
-Not run. Decisions recorded: English default/base; Arabic fully supported (RTL); cookie-based
+Status: **APPROVED (with changes) — SQL self-reviewed and shipped as a migration.**
+Not yet applied. Decisions recorded: English default/base; Arabic fully supported (RTL); cookie-based
 locale; one shared slug per property; admin UI Arabic-only.
+Self-review (Phase 3 task) hardened the schema: admin-only writes via `public.profiles.is_admin`
+(no longer "any authenticated user"), soft-delete via `properties.deleted_at`, storage/file cap
+lowered to **3 MiB**, and a fixed `search_path` on the `security definer` admin helper.
+Public read is `is_published and deleted_at is null`; `is_sample` no longer affects visibility.
+
+## Files
+
+- `supabase/migrations/20261010123342_phase_3_schema.sql` — the full schema (single source of truth),
+  wrapped in `begin; … commit;`, run once on a **fresh** project via the SQL Editor.
+- `supabase/grant-admin.sql` — looks a user up in `auth.users` by **email** and grants
+  `public.profiles.is_admin` (edit the email placeholder, then run).
+- `scripts/verify-phase-3.mjs` (`npm run verify:phase3`) — REST + Storage checks with the **anon key
+  only**; reads `.env.local`, never prints the keys.
 
 ## Strategy
 
@@ -45,7 +58,9 @@ locale; one shared slug per property; admin UI Arabic-only.
 - **Neutral:** `id`, `slug` (shared), `area_id` (FK), `created_by`; codes `property_type`,
   `listing_type`, `status`; numbers `price`, `currency`, `area_sqm`, `bedrooms`, `bathrooms`,
   `floor`, `year_built`, `latitude`, `longitude`; flags `is_published`, `is_featured`, `is_sample`;
-  `created_at`, `updated_at`, `published_at`
+  `created_at`, `updated_at`, `published_at`, `deleted_at` (soft delete; public reads exclude
+  non-null `deleted_at`). `is_sample` marks placeholder rows to remove before launch and **does not**
+  affect public visibility (only `is_published` + `deleted_at` do).
 
 ### `property_slug_history`
 
@@ -60,9 +75,10 @@ locale; one shared slug per property; admin UI Arabic-only.
 - **Neutral:** `id`, `property_id` (FK), `storage_path`, `width`, `height`, `size_bytes`,
   `is_cover`, `sort_order`, `created_at`.
 - **Constraints:** max **20** photos per property (trigger); exactly **one cover** per property
-  (partial unique index); `size_bytes` between 1 and **10 MiB**.
-- **Storage:** one bucket `property-images` (public read) with the same 10 MiB limit and the
-  allowed types `image/jpeg`, `image/png`, `image/webp`.
+  (partial unique index); `size_bytes` between 1 and **3 MiB**.
+- **Storage:** one bucket `property-images` (public read) with the same **3 MiB** limit and the
+  allowed types `image/jpeg`, `image/png`, `image/webp` (images are compressed client-side to WebP
+  before upload).
 
 ### `site_settings` (single row, explicit columns — not key/value)
 
@@ -72,10 +88,23 @@ locale; one shared slug per property; admin UI Arabic-only.
   `default_og_image`, `updated_at`
 - Enforced single row via `check (id = 1)`.
 
+### `profiles` (admin role source of truth)
+
+- One row per `auth.users` id (`id` FK → `auth.users`, `on delete cascade`).
+- **Neutral:** `id`, `is_admin` (boolean, default `false`), `display_name`, `created_at`,
+  `updated_at`.
+- The owner's row has `is_admin = true`; every write policy checks `public.is_admin()`.
+- **Anon cannot read this table at all.** A signed-in non-admin can only read/update their own
+  row and cannot set `is_admin = true` on themselves (guarded by `with check … and not is_admin`).
+- Bootstrapped by an INSERT run as `postgres` in the Supabase SQL editor (bypasses RLS) — see
+  "Admin users" below. Never created from the app.
+
 ### Admin users
 
-- Handled by **Supabase Auth** (`auth.users`); `properties.created_by` references it.
-  Language-neutral. No translated columns.
+- Authentication handled by **Supabase Auth** (`auth.users`); `properties.created_by` references it.
+- The **admin role is `public.profiles.is_admin`** (read through the `security definer`
+  `public.is_admin()` helper with a fixed `search_path`). It is _not_ "any authenticated user".
+- `profiles` is language-neutral. No translated columns.
 
 ## Which fields stay language-neutral (summary)
 
@@ -84,7 +113,7 @@ locale; one shared slug per property; admin UI Arabic-only.
 - **Numbers:** `price`, `currency`, `area_sqm`, `bedrooms`, `bathrooms`, `floor`, `year_built`,
   `latitude`, `longitude`
 - **Flags:** `is_published`, `is_featured`, `is_sample`, `is_cover`, `is_active`
-- **Timestamps:** `created_at`, `updated_at`, `published_at`
+- **Timestamps:** `created_at`, `updated_at`, `published_at`, `deleted_at`
 - **Contact handles:** `whatsapp_number`, `phone`, `email`, `facebook_url` (identical in both
   locales; wrap Latin runs in `<bdi dir="ltr">` in the Arabic UI)
 - **Auth:** the entire `auth.users` surface
@@ -97,28 +126,78 @@ locale; one shared slug per property; admin UI Arabic-only.
   looks it up and issues a **301** redirect to the current slug.
 - A historical slug can never be reused.
 
-## Media limits (from Phase 1 → DB/storage constraints)
+## Media limits (→ DB/storage constraints)
 
 - Max **20** photos per property (trigger `enforce_max_property_images`).
-- Max **10 MiB** per file (`property_images.size_bytes` check + bucket `file_size_limit`).
+- Max **3 MiB** per stored file (`property_images.size_bytes` check + bucket `file_size_limit`).
 - Allowed types `image/jpeg`, `image/png`, `image/webp` (bucket `allowed_mime_types`).
-- ⚠️ **Confirm the exact Phase 1 numbers** (20 / 10 MiB / types) — they are taken as assumptions
-  because the original spec text is not stored in the repo.
+- Photo count of **20** remains a Phase 1 assumption; the **3 MiB** stored-file cap is now fixed
+  (client compresses to WebP before upload).
 
 ## RLS
 
-- Public (anon) reads: `is_published and not is_sample` (images likewise). `areas`: `is_active`.
-  `site_settings` and `property_slug_history`: public read.
-- Writes: `authenticated` only (the single owner account). RLS acts on neutral columns only, so
-  policies are identical for both locales.
-- Storage: public read on the bucket; insert/update/delete require `authenticated`.
+- **Admin role:** `public.profiles.is_admin`, read via the `security definer` helper
+  `public.is_admin()` (fixed `search_path = public, pg_temp`). All writes require an admin — never
+  merely `authenticated`.
+- Public (anon) reads: `is_published and deleted_at is null` (images likewise via their property).
+  `areas`: `is_active`. `site_settings` and `property_slug_history`: public read. `profiles`: **no
+  anon access**.
+- RLS acts on neutral columns only, so policies are identical for both locales.
+- Storage: public read on the bucket; insert/update/delete require an admin
+  (`public.is_admin()`).
+
+## Creating the admin user (do this yourself — never in chat)
+
+1. Supabase dashboard → **Authentication → Users → Add user** → “Create new user”.
+2. Enter the owner's **email** and a password, tick **Auto Confirm User**, save.
+3. Run `supabase/grant-admin.sql` in the SQL editor after editing its email placeholder, e.g.:
+
+   ```sql
+   do $$
+   declare
+     admin_email text := 'you@example.com';   -- edit me
+     admin_id uuid;
+   begin
+     select id into admin_id from auth.users where lower(email) = lower(admin_email);
+     if admin_id is null then
+       raise exception 'No auth.users row found for email "%". Create the user first.', admin_email;
+     end if;
+     insert into public.profiles (id, is_admin)
+     values (admin_id, true)
+     on conflict (id) do update set is_admin = true;
+   end
+   $$;
+   ```
+
+The script errors clearly if the user does not exist yet. The app never creates or promotes users;
+`public.is_admin()` then returns `true` for that account.
+
+## How it was tested
+
+- **Automated (anon key only):** `npm run verify:phase3` after applying the migration and filling
+  `.env.local`. It asserts published reads succeed, the draft is hidden, anon INSERT/UPDATE/DELETE
+  are rejected on all six tables, `profiles`/`inquiries` are not readable, and Storage rejects
+  anonymous uploads (including oversize >3 MiB and wrong MIME). Results are printed PASS/FAIL.
+- **Not yet run** at the time of writing: pending the user applying the migration to a fresh
+  Supabase project and adding the anon URL/key to `.env.local`.
+
+## Known issues / limitations
+
+- The **oversize and wrong-MIME** Storage checks are masked by the anon RLS denial (anonymous
+  uploads are rejected before the bucket limits are reached). To isolate the 3 MiB / MIME rules,
+  re-run those two as an authenticated **admin** once the admin user exists.
+- The **constraints** (duplicate slug, second cover, 21st photo) can only be exercised by an admin
+  insert, so they are not covered by the anon-only script.
+- The migration uses `create type` / `create table` without `if not exists`, so it is intended for a
+  **fresh** project and is not re-runnable as-is.
 
 ## Launch checklist
 
 - [ ] **Remove all `is_sample` rows** (`properties`, `property_images`) and their storage objects
-      before going live. RLS already hides them from the public site, but they must not ship.
+      before going live. `is_sample` does not hide rows; a published sample row is publicly visible,
+      so samples must actually be deleted (not just flagged).
 - [ ] Replace placeholder storage paths and settings contact values with real ones.
-- [ ] Confirm the media limits above match the Phase 1 spec.
+- [ ] Confirm the **20** photo cap matches the Phase 1 spec (the 3 MiB stored-file cap is fixed).
 
 ## Open question
 
