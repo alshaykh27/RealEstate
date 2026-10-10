@@ -64,7 +64,7 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
 Phase 3 schema is the migration `supabase/migrations/20261010123342_phase_3_schema.sql` — applied once
 on the fresh project. The admin role was granted with `supabase/grant-admin.sql`, and verification ran
 with `npm run verify:phase3` (anon key only). Applying the migration used a one-off `SUPABASE_DB_URL`
-(a Postgres connection string) kept only in `.env.local`; the running app does **not** need it.
+(a Postgres connection string), since rotated and removed from `.env.local`; the app does **not** need it.
 
 ## Quality gates
 
@@ -73,9 +73,17 @@ with `npm run verify:phase3` (anon key only). Applying the migration used a one-
 ## Open items / blockers
 
 - **Phase 3 applied & verified** on 2026-10-10 (see `docs/phase-3-db-design.md` → "How it was tested").
-- **Rotate the database password** now that the migration is applied, and remove `SUPABASE_DB_URL`
-  from `.env.local` (only needed for migration/admin one-offs; the app uses the public env vars).
-- **Dependency gap (must fix before deploy):** `@supabase/ssr` and `@supabase/supabase-js` are present
-  in `node_modules` but **not declared in `package.json`** — a clean install / Vercel build will fail.
-  Add both to `dependencies`.
+- ~~Rotate the database password and remove `SUPABASE_DB_URL` from `.env.local`.~~ **Done** (rotated;
+  `SUPABASE_DB_URL` removed — the app uses only the public env vars).
+- ~~Dependency gap.~~ **Fixed:** `@supabase/ssr`, `@supabase/supabase-js`, `clsx` and `tailwind-merge`
+  were undeclared; all four are now pinned in `dependencies`. A clean `npm install` + `npm run build`
+  was verified from an emptied `node_modules`.
 - The 20-photo cap is still a Phase 1 assumption to confirm.
+
+## Phase 5 carry-over (must do — do not let slip)
+
+- [ ] Re-check the **Storage-API** 3 MiB size limit and MIME allow-list with a **signed-in admin
+      upload** end-to-end. In Phase 3 these were only verified at the bucket-config + DB-check level
+      (anonymous uploads are RLS-blocked before the limits apply). See `docs/phase-3-db-design.md`
+      → "Known issues / limitations".
+- [ ] Confirm the real photo-upload path compresses to WebP client-side and enforces the 20-photo cap.
