@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { Reveal } from "@/components/motion/reveal";
 import { mailtoUrl, telUrl, whatsappUrl } from "@/lib/contact";
 import { getSiteSettings } from "@/lib/data/settings";
 import { localeAlternates } from "@/lib/seo";
@@ -84,25 +85,26 @@ export default async function ContactPage({ params }: PageProps<"/[locale]/conta
 
       {methods.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2">
-          {methods.map((method) => (
-            <a
-              key={method.key}
-              href={method.href}
-              target={method.external ? "_blank" : undefined}
-              rel={method.external ? "noopener noreferrer" : undefined}
-              className="border-line bg-surface shadow-card hover:shadow-elevated flex flex-col gap-2 rounded-2xl border p-6 transition-shadow"
-            >
-              <span className="text-gold-deep font-heading text-sm font-semibold">
-                {method.label}
-              </span>
-              {method.value ? (
-                <span className="text-ink text-lg font-medium">
-                  <bdi>{method.value}</bdi>
+          {methods.map((method, index) => (
+            <Reveal key={method.key} delay={Math.min(index, 5) * 0.08}>
+              <a
+                href={method.href}
+                target={method.external ? "_blank" : undefined}
+                rel={method.external ? "noopener noreferrer" : undefined}
+                className="border-line bg-surface shadow-card hover:shadow-elevated hover:border-gold-deep/40 flex h-full flex-col gap-2 rounded-2xl border p-6 transition-[box-shadow,border-color]"
+              >
+                <span className="text-gold-deep font-heading text-sm font-semibold">
+                  {method.label}
                 </span>
-              ) : (
-                <span className="text-ink text-lg font-medium">→</span>
-              )}
-            </a>
+                {method.value ? (
+                  <span className="text-ink text-lg font-medium">
+                    <bdi>{method.value}</bdi>
+                  </span>
+                ) : (
+                  <span className="text-ink text-lg font-medium">→</span>
+                )}
+              </a>
+            </Reveal>
           ))}
         </div>
       ) : (

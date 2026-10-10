@@ -6,6 +6,8 @@ import { Suspense } from "react";
 import { PropertyGallery, type GalleryImage } from "@/components/properties/property-gallery";
 import { PropertyGrid } from "@/components/properties/property-grid";
 import { StatusBadge } from "@/components/properties/status-badge";
+import { WhatsAppIcon } from "@/components/icons/social";
+import { Reveal } from "@/components/motion/reveal";
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { whatsappUrl } from "@/lib/contact";
@@ -124,113 +126,129 @@ async function PropertyDetail({ params }: { params: Promise<{ locale: string; sl
       </div>
 
       <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
-        <PropertyGallery images={gallery} placeholderLabel={title} />
+        <Reveal>
+          <PropertyGallery images={gallery} placeholderLabel={title} />
+        </Reveal>
 
-        <aside className="border-line bg-surface shadow-card flex flex-col gap-5 rounded-2xl border p-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={property.status} labels={dict.badges} />
-            {property.is_featured ? (
-              <span className="badge badge-featured">{dict.badges.featured}</span>
-            ) : null}
-            <span className="badge badge-draft">
-              {property.listing_type === "rent" ? dict.listingType.rent : dict.listingType.sale}
-            </span>
-          </div>
+        <Reveal delay={0.1}>
+          <aside className="border-line bg-surface shadow-card flex h-full flex-col gap-5 rounded-2xl border p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={property.status} labels={dict.badges} />
+              {property.is_featured ? (
+                <span className="badge badge-featured">{dict.badges.featured}</span>
+              ) : null}
+              <span className="badge badge-draft">
+                {property.listing_type === "rent" ? dict.listingType.rent : dict.listingType.sale}
+              </span>
+            </div>
 
-          <div className="flex flex-col gap-1">
-            <h1 className="text-ink text-2xl font-bold">{title}</h1>
-            {areaName ? <p className="text-ink-muted">{areaName}</p> : null}
-          </div>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-ink text-2xl font-bold">{title}</h1>
+              {areaName ? <p className="text-ink-muted">{areaName}</p> : null}
+            </div>
 
-          <p className="text-navy font-heading text-2xl font-bold">
-            <bdi>{formatPrice(locale, property.price, property.currency)}</bdi>
-          </p>
-
-          <dl className="border-line grid grid-cols-2 gap-4 border-t pt-5 text-sm">
-            <Detail
-              label={dict.fields.propertyType}
-              value={dict.propertyType[property.property_type]}
-            />
-            {property.bedrooms !== null ? (
-              <Detail label={dict.fields.bedrooms} value={String(property.bedrooms)} />
-            ) : null}
-            {property.bathrooms !== null ? (
-              <Detail label={dict.fields.bathrooms} value={String(property.bathrooms)} />
-            ) : null}
-            {property.area_sqm !== null ? (
-              <Detail label={dict.fields.area} value={formatArea(locale, property.area_sqm)} />
-            ) : null}
-            {property.floor !== null ? (
-              <Detail label={dict.fields.floor} value={String(property.floor)} />
-            ) : null}
-            {property.year_built !== null ? (
-              <Detail label={dict.fields.yearBuilt} value={String(property.year_built)} />
-            ) : null}
-            <Detail label={dict.fields.listedOn} value={formatDate(locale, property.created_at)} />
-          </dl>
-
-          <div className="border-line flex flex-col gap-3 border-t pt-5">
-            <p className="text-ink font-heading text-sm font-semibold">
-              {dict.property.contactHeading}
+            <p className="text-navy font-heading text-2xl font-bold">
+              <bdi>{formatPrice(locale, property.price, property.currency)}</bdi>
             </p>
-            <p className="text-ink-secondary text-sm">{dict.property.contactSubhead}</p>
-            {whatsapp ? (
-              <a
-                href={whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-whatsapp"
-              >
-                {dict.hero.ctaWhatsapp}
-              </a>
-            ) : (
-              <Link href={`/${locale}/contact`} className="btn btn-primary">
-                {dict.contact.heading}
-              </Link>
-            )}
-          </div>
-        </aside>
+
+            <dl className="border-line grid grid-cols-2 gap-4 border-t pt-5 text-sm">
+              <Detail
+                label={dict.fields.propertyType}
+                value={dict.propertyType[property.property_type]}
+              />
+              {property.bedrooms !== null ? (
+                <Detail label={dict.fields.bedrooms} value={String(property.bedrooms)} />
+              ) : null}
+              {property.bathrooms !== null ? (
+                <Detail label={dict.fields.bathrooms} value={String(property.bathrooms)} />
+              ) : null}
+              {property.area_sqm !== null ? (
+                <Detail label={dict.fields.area} value={formatArea(locale, property.area_sqm)} />
+              ) : null}
+              {property.floor !== null ? (
+                <Detail label={dict.fields.floor} value={String(property.floor)} />
+              ) : null}
+              {property.year_built !== null ? (
+                <Detail label={dict.fields.yearBuilt} value={String(property.year_built)} />
+              ) : null}
+              <Detail
+                label={dict.fields.listedOn}
+                value={formatDate(locale, property.created_at)}
+              />
+            </dl>
+
+            <div className="border-line flex flex-col gap-3 border-t pt-5">
+              <p className="text-ink font-heading text-sm font-semibold">
+                {dict.property.contactHeading}
+              </p>
+              <p className="text-ink-secondary text-sm">{dict.property.contactSubhead}</p>
+              {whatsapp ? (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                >
+                  <WhatsAppIcon className="h-5 w-5" />
+                  {dict.property.contactCta}
+                </a>
+              ) : (
+                <Link href={`/${locale}/contact`} className="btn btn-primary">
+                  {dict.contact.heading}
+                </Link>
+              )}
+            </div>
+          </aside>
+        </Reveal>
       </div>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-ink text-xl font-bold">{dict.property.descriptionHeading}</h2>
-        {description
-          .split(/\n{2,}/)
-          .filter((paragraph) => paragraph.trim().length > 0)
-          .map((paragraph, index) => (
-            <p key={index} className="text-ink-secondary leading-relaxed">
-              {paragraph}
-            </p>
-          ))}
-      </section>
+      <Reveal>
+        <section className="flex flex-col gap-4">
+          <h2 className="text-ink text-xl font-bold">{dict.property.descriptionHeading}</h2>
+          {description
+            .split(/\n{2,}/)
+            .filter((paragraph) => paragraph.trim().length > 0)
+            .map((paragraph, index) => (
+              <p key={index} className="text-ink-secondary leading-relaxed">
+                {paragraph}
+              </p>
+            ))}
+        </section>
+      </Reveal>
 
       {features.length > 0 ? (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-ink text-xl font-bold">{dict.property.featuresHeading}</h2>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => (
-              <li key={feature} className="text-ink-secondary flex items-center gap-2 text-sm">
-                <span className="bg-gold h-1.5 w-1.5 rounded-full" aria-hidden />
-                {feature}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Reveal>
+          <section className="flex flex-col gap-4">
+            <h2 className="text-ink text-xl font-bold">{dict.property.featuresHeading}</h2>
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {features.map((feature) => (
+                <li key={feature} className="text-ink-secondary flex items-center gap-2 text-sm">
+                  <span className="bg-gold h-1.5 w-1.5 rounded-full" aria-hidden />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </Reveal>
       ) : null}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-ink text-xl font-bold">{dict.property.locationHeading}</h2>
-        <p className="text-ink-secondary leading-relaxed">{address}</p>
-      </section>
+      <Reveal>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-ink text-xl font-bold">{dict.property.locationHeading}</h2>
+          <p className="text-ink-secondary leading-relaxed">{address}</p>
+        </section>
+      </Reveal>
 
       {related.length > 0 ? (
-        <section className="flex flex-col gap-6">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-ink text-xl font-bold">{dict.property.similarHeading}</h2>
-            <p className="text-ink-secondary text-sm">{dict.property.similarSubhead}</p>
-          </div>
-          <PropertyGrid properties={related} locale={locale} dict={dict} />
-        </section>
+        <Reveal>
+          <section className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-ink text-xl font-bold">{dict.property.similarHeading}</h2>
+              <p className="text-ink-secondary text-sm">{dict.property.similarSubhead}</p>
+            </div>
+            <PropertyGrid properties={related} locale={locale} dict={dict} />
+          </section>
+        </Reveal>
       ) : null}
     </main>
   );

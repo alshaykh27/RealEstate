@@ -15,7 +15,6 @@ const dictionary: Dictionary = {
     subhead: "استعرض عقارات مميزة للبيع والإيجار في القاهرة الجديدة والتجمع الخامس وما حولها.",
     ctaPrimary: "استكشف العقارات",
     ctaWhatsapp: "تواصل واتساب",
-    ctaFacebook: "فيسبوك",
   },
   badges: {
     available: "متاح",
@@ -93,8 +92,6 @@ const dictionary: Dictionary = {
       "تساعد دارفيا المشترين والبائعين والمستثمرين على التنقل في سوق العقارات المصري سريع الحركة، بتوجيه واضح ونصيحة صادقة.",
     contactHeading: "تحدّث مع مستشار",
     contactBody: "لديك سؤال أو ترغب في ترتيب معاينة؟ رسالة واحدة تفصلك عنا.",
-    whatsappCta: "تواصل واتساب",
-    facebookCta: "راسلنا على فيسبوك",
   },
   search: {
     heading: "العقارات",
@@ -122,6 +119,7 @@ const dictionary: Dictionary = {
     similarSubhead: "عقارات من نفس المنطقة أو مناطق قريبة.",
     contactHeading: "مهتم بهذا العقار؟",
     contactSubhead: "أرسل لنا رسالة لترتيب معاينة أو لطرح سؤال.",
+    contactCta: "تواصل بخصوص هذا العقار",
     shareHeading: "شارك هذا العقار",
   },
   areas: {
@@ -170,6 +168,7 @@ const dictionary: Dictionary = {
     tagline: "عقارات مميزة في القاهرة الجديدة والقاهرة الكبرى.",
     quickLinks: "روابط سريعة",
     contactHeading: "تواصل معنا",
+    social: "تابعنا",
     rights: (year: number) => `© ${year} دارفيا. جميع الحقوق محفوظة.`,
   },
   notFound: {

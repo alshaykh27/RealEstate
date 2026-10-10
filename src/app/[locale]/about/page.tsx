@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { Reveal } from "@/components/motion/reveal";
 import { localeAlternates } from "@/lib/seo";
 
 export async function generateMetadata({
@@ -34,22 +35,23 @@ export default async function AboutPage({ params }: PageProps<"/[locale]/about">
       </section>
 
       <section className="bg-background mx-auto flex w-full max-w-6xl flex-col gap-5 px-6 py-16">
-        <p className="text-ink-secondary leading-relaxed">{dict.about.bodyOne}</p>
-        <p className="text-ink-secondary leading-relaxed">{dict.about.bodyTwo}</p>
+        <Reveal className="flex flex-col gap-5">
+          <p className="text-ink-secondary leading-relaxed">{dict.about.bodyOne}</p>
+          <p className="text-ink-secondary leading-relaxed">{dict.about.bodyTwo}</p>
+        </Reveal>
       </section>
 
       <section className="bg-cream border-line border-y">
         <div className="mx-auto w-full max-w-6xl px-6 py-16">
           <h2 className="text-ink mb-8 text-2xl font-bold">{dict.about.valuesHeading}</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {dict.about.values.map((value) => (
-              <div
-                key={value.title}
-                className="border-line bg-surface shadow-card flex flex-col gap-2 rounded-2xl border p-6"
-              >
-                <h3 className="text-ink text-lg font-semibold">{value.title}</h3>
-                <p className="text-ink-secondary text-sm leading-relaxed">{value.body}</p>
-              </div>
+            {dict.about.values.map((value, index) => (
+              <Reveal key={value.title} className="h-full" delay={index * 0.08}>
+                <div className="border-line bg-surface shadow-card flex h-full flex-col gap-2 rounded-2xl border p-6">
+                  <h3 className="text-ink text-lg font-semibold">{value.title}</h3>
+                  <p className="text-ink-secondary text-sm leading-relaxed">{value.body}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>

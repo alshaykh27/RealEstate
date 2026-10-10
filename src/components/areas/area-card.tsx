@@ -21,7 +21,7 @@ export function AreaCard({
   return (
     <Link
       href={`/${locale}/areas/${area.slug}`}
-      className="group border-line bg-surface shadow-card hover:shadow-elevated flex flex-col gap-2 rounded-2xl border p-6 transition-shadow"
+      className="group border-line bg-surface shadow-card hover:shadow-elevated hover:border-gold-deep/40 flex h-full flex-col gap-2 rounded-2xl border p-6 transition-[box-shadow,border-color]"
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-ink group-hover:text-navy text-lg font-semibold">{name}</h3>

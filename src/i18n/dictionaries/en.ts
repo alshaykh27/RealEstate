@@ -14,7 +14,6 @@ const dictionary = {
       "Explore premium properties for sale and rent in New Cairo, Fifth Settlement and beyond.",
     ctaPrimary: "Explore Properties",
     ctaWhatsapp: "Chat on WhatsApp",
-    ctaFacebook: "Facebook",
   },
   badges: {
     available: "Available",
@@ -93,8 +92,6 @@ const dictionary = {
       "Darvia helps buyers, sellers and investors navigate Egypt's fast-moving property market with clear guidance and honest advice.",
     contactHeading: "Talk to a consultant",
     contactBody: "Have a question or want to arrange a viewing? We are one message away.",
-    whatsappCta: "Chat on WhatsApp",
-    facebookCta: "Message on Facebook",
   },
   search: {
     heading: "Properties",
@@ -122,6 +119,7 @@ const dictionary = {
     similarSubhead: "Properties from the same area or nearby areas.",
     contactHeading: "Interested in this property?",
     contactSubhead: "Send us a message to arrange a viewing or ask a question.",
+    contactCta: "Contact about this property",
     shareHeading: "Share this property",
   },
   areas: {
@@ -170,6 +168,7 @@ const dictionary = {
     tagline: "Premium property listings across New Cairo and Greater Cairo.",
     quickLinks: "Quick links",
     contactHeading: "Get in touch",
+    social: "Follow us",
     rights: (year: number) => `© ${year} Darvia. All rights reserved.`,
   },
   notFound: {

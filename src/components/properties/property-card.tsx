@@ -27,7 +27,7 @@ export function PropertyCard({
   return (
     <Link
       href={href}
-      className="group border-line bg-surface shadow-card hover:shadow-elevated flex flex-col overflow-hidden rounded-2xl border transition-shadow"
+      className="group border-line bg-surface shadow-card hover:shadow-elevated hover:border-gold-deep/40 flex h-full flex-col overflow-hidden rounded-2xl border transition-[box-shadow,border-color]"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <PropertyImage

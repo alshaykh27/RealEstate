@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AreaCard } from "@/components/areas/area-card";
+import { Reveal } from "@/components/motion/reveal";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getAreas, getPublishedCountsByArea } from "@/lib/data/areas";
@@ -36,14 +38,17 @@ export default async function AreasPage({ params }: PageProps<"/[locale]/areas">
 
       {areas.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {areas.map((area) => (
-            <AreaCard
-              key={area.id}
-              area={area}
-              locale={locale}
-              countLabel={dict.areas.count(counts[area.id] ?? 0)}
-              exploreLabel={dict.areas.explore}
-            />
+          {areas.map((area, index) => (
+            <Reveal key={area.id} className="h-full" delay={Math.min(index, 5) * 0.08}>
+              <TiltCard>
+                <AreaCard
+                  area={area}
+                  locale={locale}
+                  countLabel={dict.areas.count(counts[area.id] ?? 0)}
+                  exploreLabel={dict.areas.explore}
+                />
+              </TiltCard>
+            </Reveal>
           ))}
         </div>
       ) : (

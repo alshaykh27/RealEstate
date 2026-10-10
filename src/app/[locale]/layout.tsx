@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter, type ContactInfo } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { WhatsAppFab } from "@/components/layout/whatsapp-fab";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { dirFor, isLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { localize } from "@/lib/content";
@@ -73,7 +74,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
     >
       <body className="flex min-h-full flex-col">
         <SiteHeader locale={locale} brand={brand} nav={dict.nav} language={dict.language} />
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <SiteFooter locale={locale} brand={brand} dict={dict} contact={contact} />
         <WhatsAppFab number={contact.whatsapp} label={dict.hero.ctaWhatsapp} />
       </body>

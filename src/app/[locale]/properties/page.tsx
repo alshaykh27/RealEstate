@@ -8,6 +8,7 @@ import {
   type FilterTypeOption,
 } from "@/components/properties/property-filters";
 import { PropertyGrid } from "@/components/properties/property-grid";
+import { Reveal } from "@/components/motion/reveal";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { localize } from "@/lib/content";
@@ -53,8 +54,10 @@ export default async function PropertiesPage({
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-3">
-        <h1 className="text-ink text-3xl font-bold">{dict.search.heading}</h1>
-        <p className="text-ink-secondary max-w-2xl leading-relaxed">{dict.search.subhead}</p>
+        <Reveal>
+          <h1 className="text-ink text-3xl font-bold">{dict.search.heading}</h1>
+          <p className="text-ink-secondary mt-3 max-w-2xl leading-relaxed">{dict.search.subhead}</p>
+        </Reveal>
       </header>
 
       <Suspense fallback={<div className="border-line bg-surface h-56 rounded-2xl border" />}>

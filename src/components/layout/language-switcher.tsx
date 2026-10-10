@@ -2,16 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import { locales, type Locale } from "@/i18n/config";
+import { cn } from "@/lib/utils";
 
 export function LanguageSwitcher({
   current,
   labels,
   label,
+  inverse = false,
 }: {
   current: Locale;
   labels: Record<Locale, string>;
   label: string;
+  inverse?: boolean;
 }) {
   const pathname = usePathname() ?? `/${current}`;
   const segments = pathname.split("/").filter(Boolean);
@@ -28,11 +32,15 @@ export function LanguageSwitcher({
             href={href}
             hrefLang={locale}
             aria-current={isActive ? "true" : undefined}
-            className={
+            className={cn(
+              "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
               isActive
-                ? "bg-navy rounded-full px-3 py-1.5 text-xs font-medium text-white"
-                : "text-ink-secondary hover:text-ink hover:bg-cream rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-            }
+                ? "bg-navy text-white"
+                : inverse
+                  ? "text-on-dark-secondary hover:text-on-dark"
+                  : "text-ink-secondary hover:text-ink hover:bg-cream",
+              inverse && isActive && "bg-gold text-obsidian",
+            )}
           >
             <span lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
               {labels[locale]}

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { Reveal } from "@/components/motion/reveal";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { PropertyCard } from "@/components/properties/property-card";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -22,8 +24,12 @@ export function PropertyGrid({
 
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {properties.map((property) => (
-        <PropertyCard key={property.id} property={property} locale={locale} dict={dict} />
+      {properties.map((property, index) => (
+        <Reveal key={property.id} className="h-full" delay={Math.min(index, 5) * 0.08}>
+          <TiltCard>
+            <PropertyCard property={property} locale={locale} dict={dict} />
+          </TiltCard>
+        </Reveal>
       ))}
     </div>
   );
