@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useRef, useState } from "react";
 
-import type { PropertyActionState } from "@/app/admin/_actions/properties";
+import { publishProperty, type PropertyActionState } from "@/app/admin/_actions/properties";
+import {
+  StagedImagePicker,
+  type StagedImagePickerHandle,
+} from "@/components/admin/staged-image-picker";
 import { admin } from "@/i18n/admin";
 import { defaultLocale } from "@/i18n/config";
 import { listingTypeOptions, propertyTypeOptions, statusOptions } from "@/lib/admin-labels";
@@ -48,8 +52,10 @@ export interface PropertyFormProps {
 export function PropertyForm({ mode, action, areas, compounds = [], defaults }: PropertyFormProps) {
   const [lang, setLang] = useState<"en" | "ar">("en");
   const [state, setState] = useState<PropertyActionState>({});
-  const [isPending, startTransition] = useTransition();
+  const [working, setWorking] = useState(false);
   const isCreate = mode === "create";
+  const formRef = useRef<HTMLFormElement>(null);
+  const stagedRef = useRef<StagedImagePickerHandle>(null);
 
   const v = (value: string | number | null | undefined) =>
     value === null || value === undefined ? "" : String(value);
@@ -57,30 +63,146 @@ export function PropertyForm({ mode, action, areas, compounds = [], defaults }: 
   const enHidden = cn(lang !== "en" && "hidden");
   const arHidden = cn(lang !== "ar" && "hidden");
 
+  /** Clears the form and staged images and returns focus to the first field. */
+  function finishSuccess(propertyId: string, createdSlug: string | undefined, published: boolean) {
+    setState({ ok: true, createdId: propertyId, createdSlug, published });
+    formRef.current?.reset();
+    stagedRef.current?.reset();
+    setLang("en");
+    formRef.current?.querySelector<HTMLInputElement>("#title_en")?.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /**
+   * Uploads the staged images against an already-created draft and publishes it
+   * only once every upload succeeded. A property is therefore never published
+   * while its images are still missing.
+   */
+  async function uploadAndFinalize(
+    propertyId: string,
+    requestedPublished: boolean,
+    createdSlug?: string,
+  ) {
+    const summary = await stagedRef.current?.uploadAll(propertyId);
+    const total = summary?.total ?? 0;
+
+    if (summary && summary.failed > 0) {
+      setState({
+        partial: true,
+        createdId: propertyId,
+        createdSlug,
+        requestedPublished,
+        failedCount: summary.failed,
+      });
+      return;
+    }
+
+    // A published property must never exist without its images: if the author
+    // asked to publish but staged nothing, keep the draft and explain why.
+    if (requestedPublished && total === 0) {
+      setState({
+        ok: true,
+        noImages: true,
+        createdId: propertyId,
+        createdSlug,
+        requestedPublished,
+        published: false,
+      });
+      setLang("en");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    let published = false;
+    if (requestedPublished) {
+      const result = await publishProperty(propertyId);
+      if ("error" in result) {
+        setState({ error: result.error, createdId: propertyId, createdSlug, requestedPublished });
+        return;
+      }
+      published = true;
+    }
+
+    finishSuccess(propertyId, createdSlug, published);
+  }
+
   // Submitting imperatively (instead of a native `<form action>`) keeps every
   // entered value when the action fails — React's form-action handling would
-  // auto-reset the fields. Only a successful create clears the form, and it
-  // also returns to the first field and scrolls up so the next item can be
-  // entered right away. The action runs inside a transition so `isPending`
-  // (and the disabled save button) stays accurate.
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  // auto-reset the fields. A successful create clears the form and returns to
+  // the first field. The whole create → upload → publish sequence disables Save.
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    startTransition(async () => {
-      const next = await action(state, formData);
-      setState(next);
-      if (isCreate && next.ok) {
-        form.reset();
-        setLang("en");
-        form.querySelector<HTMLInputElement>("#title_en")?.focus();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+    if (working) return;
+    const formData = new FormData(event.currentTarget);
+    setWorking(true);
+    try {
+      // The update form has no staged images and no separate publish step.
+      if (!isCreate) {
+        setState(await action(state, formData));
+        return;
       }
-    });
+
+      // Resume the draft created by a previous attempt that did not finish
+      // (some uploads failed, or it was held back because it had no images).
+      if ((state.partial || state.noImages) && state.createdId) {
+        await uploadAndFinalize(
+          state.createdId,
+          Boolean(state.requestedPublished),
+          state.createdSlug,
+        );
+        return;
+      }
+
+      const created = await action({}, formData);
+      if (created.error) {
+        setState({ error: created.error });
+        return;
+      }
+      if (!created.createdId) {
+        setState({ error: admin.common.genericError });
+        return;
+      }
+      await uploadAndFinalize(
+        created.createdId,
+        Boolean(created.requestedPublished),
+        created.createdSlug,
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function handleRetry(itemId: string) {
+    const propertyId = state.createdId;
+    if (!propertyId || working) return;
+    setWorking(true);
+    try {
+      const summary = await stagedRef.current?.uploadOne(propertyId, itemId);
+      if (!summary) return;
+
+      if (summary.failed > 0) {
+        setState({ ...state, partial: true, failedCount: summary.failed });
+        return;
+      }
+      if (!summary.allDone) return;
+
+      let published = Boolean(state.published);
+      if (state.requestedPublished) {
+        const result = await publishProperty(propertyId);
+        if ("error" in result) {
+          setState({ ...state, error: result.error });
+          return;
+        }
+        published = true;
+      }
+      finishSuccess(propertyId, state.createdSlug, published);
+    } finally {
+      setWorking(false);
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-6">
       {defaults?.id ? <input type="hidden" name="id" value={defaults.id} /> : null}
       {isCreate && state.ok && state.createdId ? (
         <div
@@ -88,17 +210,34 @@ export function PropertyForm({ mode, action, areas, compounds = [], defaults }: 
           className="border-success/30 bg-success-surface flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-5 py-3 text-sm"
         >
           <span className="text-success font-medium">{admin.form.createdSuccess}</span>
-          {state.createdPublished ? (
+          {state.published ? (
             <Link
               href={`/${defaultLocale}/properties/${state.createdSlug}`}
+              target="_blank"
               rel="noreferrer"
               className="text-action-navy underline"
             >
               {admin.form.viewProperty}
             </Link>
           ) : (
-            <span className="text-ink-muted">{admin.form.createdDraftHint}</span>
+            <span className="text-ink-muted">
+              {state.noImages ? admin.images.publishNeedsImage : admin.form.createdDraftHint}
+            </span>
           )}
+          <Link
+            href={`/admin/properties/${state.createdId}/edit`}
+            className="text-action-navy underline"
+          >
+            {admin.form.manageProperty}
+          </Link>
+        </div>
+      ) : null}
+      {isCreate && state.partial && state.createdId ? (
+        <div
+          role="alert"
+          className="border-warning/30 bg-warning-surface flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-5 py-3 text-sm"
+        >
+          <span className="text-warning font-medium">{admin.images.partialWarning}</span>
           <Link
             href={`/admin/properties/${state.createdId}/edit`}
             className="text-action-navy underline"
@@ -473,9 +612,13 @@ export function PropertyForm({ mode, action, areas, compounds = [], defaults }: 
         </div>
       </section>
 
+      {isCreate ? (
+        <StagedImagePicker ref={stagedRef} busy={working} onRetryItem={handleRetry} />
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-4">
-        <button type="submit" disabled={isPending} className="btn btn-primary text-sm">
-          {isPending
+        <button type="submit" disabled={working} className="btn btn-primary text-sm">
+          {working
             ? isCreate
               ? admin.form.creating
               : admin.common.saving

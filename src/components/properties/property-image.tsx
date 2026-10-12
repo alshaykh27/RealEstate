@@ -12,6 +12,7 @@ interface PropertyImageProps {
   className?: string;
   imageClassName?: string;
   preload?: boolean;
+  unoptimized?: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export function PropertyImage({
   className,
   imageClassName,
   preload,
+  unoptimized,
 }: PropertyImageProps) {
   const [failed, setFailed] = useState(false);
 
@@ -50,6 +52,7 @@ export function PropertyImage({
       fill
       sizes={sizes}
       preload={preload}
+      unoptimized={unoptimized}
       className={cn("object-cover", imageClassName, className)}
       onError={() => setFailed(true)}
     />

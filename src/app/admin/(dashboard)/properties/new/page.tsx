@@ -13,7 +13,7 @@ export default async function NewPropertyPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={admin.form.newTitle} />
       <p className="text-ink-muted rounded-lg bg-[var(--color-surface-cream)] px-4 py-3 text-sm">
-        {admin.form.saveFirstForImages}
+        {admin.images.stagedHint}
       </p>
       <PropertyForm mode="create" action={createProperty} areas={areas} compounds={compounds} />
     </div>

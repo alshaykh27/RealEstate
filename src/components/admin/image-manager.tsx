@@ -3,8 +3,6 @@
 import { useRef, useState } from "react";
 
 import {
-  createImageUploadUrl,
-  finalizeImage,
   removeImage,
   reorderImages,
   setCover,
@@ -13,9 +11,8 @@ import {
 } from "@/app/admin/_actions/images";
 import { PropertyImage } from "@/components/properties/property-image";
 import { admin } from "@/i18n/admin";
-import { MAX_PROPERTY_IMAGES, PROPERTY_IMAGE_BUCKET, propertyImageUrl } from "@/lib/content";
-import { compressToWebp, isAcceptedImageType, MAX_IMAGE_BYTES } from "@/lib/image-compress";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { MAX_PROPERTY_IMAGES, propertyImageUrl } from "@/lib/content";
+import { imageErrorMessage, uploadImage, ImageUploadError } from "@/lib/image-upload";
 import { cn } from "@/lib/utils";
 
 function sortByOrder(images: ImageRow[]): ImageRow[] {
@@ -23,11 +20,7 @@ function sortByOrder(images: ImageRow[]): ImageRow[] {
 }
 
 function messageFor(error: unknown): string {
-  const key = error instanceof Error ? error.message : "";
-  if (key === "type") return admin.images.badType;
-  if (key === "tooLarge") return admin.images.tooLarge;
-  if (key === "compress") return admin.images.compressFailed;
-  return admin.images.uploadFailed;
+  return imageErrorMessage(error instanceof ImageUploadError ? error.key : "");
 }
 
 export function ImageManager({
@@ -45,36 +38,7 @@ export function ImageManager({
   const atLimit = images.length >= MAX_PROPERTY_IMAGES;
 
   async function uploadFile(file: File): Promise<ImageRow> {
-    if (!isAcceptedImageType(file.type)) throw new Error("type");
-
-    const target = await createImageUploadUrl(propertyId);
-    if ("error" in target) throw new Error("upload");
-
-    const compressed = await compressToWebp(file).catch(() => {
-      throw new Error("compress");
-    });
-    if (compressed.blob.size > MAX_IMAGE_BYTES) throw new Error("tooLarge");
-
-    const supabase = getSupabaseBrowserClient();
-    const { error: uploadError } = await supabase.storage
-      .from(PROPERTY_IMAGE_BUCKET)
-      .uploadToSignedUrl(target.path, target.token, compressed.blob, {
-        contentType: "image/webp",
-      });
-    if (uploadError) throw new Error("upload");
-
-    const inserted = await finalizeImage({
-      propertyId,
-      storagePath: target.path,
-      width: compressed.width,
-      height: compressed.height,
-      sizeBytes: compressed.blob.size,
-      altEn: "",
-      altAr: null,
-    });
-    if ("error" in inserted) throw new Error("upload");
-
-    return inserted;
+    return uploadImage(propertyId, file);
   }
 
   async function onFilesSelected(files: FileList | null) {

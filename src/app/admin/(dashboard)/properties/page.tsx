@@ -46,6 +46,8 @@ export default async function AdminPropertiesPage() {
               {properties.map((property) => {
                 const cover = coverStoragePath(property.property_images);
                 const missingArabic = !hasValue(property.title_ar);
+                const draftWithoutImages =
+                  !property.is_published && property.property_images.length === 0;
 
                 return (
                   <tr key={property.id} className="hover:bg-surface-cream/50 align-middle">
@@ -63,6 +65,11 @@ export default async function AdminPropertiesPage() {
                             {property.title_en}
                           </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                            {draftWithoutImages ? (
+                              <span className="badge badge-warning">
+                                {admin.properties.noImages}
+                              </span>
+                            ) : null}
                             {property.is_sample ? (
                               <span className="badge badge-sold">{admin.properties.sample}</span>
                             ) : null}

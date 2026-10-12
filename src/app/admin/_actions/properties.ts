@@ -15,7 +15,12 @@ export interface PropertyActionState {
   ok?: boolean;
   createdId?: string;
   createdSlug?: string;
-  createdPublished?: boolean;
+  requestedPublished?: boolean;
+  published?: boolean;
+  partial?: boolean;
+  failedCount?: number;
+  /** The author asked to publish but no image had been staged: kept as draft. */
+  noImages?: boolean;
 }
 
 function str(formData: FormData, name: string): string {
@@ -134,9 +139,10 @@ function buildPayload(formData: FormData) {
 }
 
 /**
- * Creates a new property (English base required). Returns the new id/slug so
- * the add form can show a success message and reset itself, instead of
- * navigating away.
+ * Creates a new property (English base required) **as a draft** and returns its
+ * id/slug plus whether the author asked to publish it. The add form then uploads
+ * its staged images and calls {@link publishProperty} only once every upload has
+ * succeeded, so a published property never exists without its images.
  */
 export async function createProperty(
   _prev: PropertyActionState,
@@ -151,11 +157,13 @@ export async function createProperty(
   const slug = providedSlug || slugify(result.payload.title_en);
   if (!slug) return { error: admin.form.errorSlugRequired };
 
+  const requestedPublished = result.payload.is_published;
+
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
     .from("properties")
-    .insert({ ...result.payload, slug })
-    .select("id, slug, is_published")
+    .insert({ ...result.payload, is_published: false, slug })
+    .select("id, slug")
     .single();
 
   if (error) {
@@ -171,8 +179,49 @@ export async function createProperty(
     ok: true,
     createdId: data.id as string,
     createdSlug: data.slug as string,
-    createdPublished: data.is_published as boolean,
+    requestedPublished,
   };
+}
+
+/**
+ * Publishes a property that was just created as a draft. Called by the add form
+ * after every staged image has uploaded successfully.
+ */
+export async function publishProperty(id: string): Promise<{ ok: true } | { error: string }> {
+  await requireAdmin();
+
+  const supabase = await getSupabaseServerClient();
+  const { data: existing, error: loadError } = await supabase
+    .from("properties")
+    .select("slug, is_published, published_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !existing) {
+    if (loadError) logDbError("publish:load", loadError);
+    return { error: admin.common.genericError };
+  }
+
+  if (existing.is_published) return { ok: true };
+
+  const { error } = await supabase
+    .from("properties")
+    .update({
+      is_published: true,
+      published_at: (existing.published_at as string | null) ?? new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    logDbError("publish", error);
+    return { error: admin.common.genericError };
+  }
+
+  updateTag("properties");
+  updateTag("areas");
+  updateTag(`property-${existing.slug}`);
+
+  return { ok: true };
 }
 
 /** Updates an existing property. */
