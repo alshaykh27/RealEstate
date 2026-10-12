@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import Link from "next/link";
+import { useState, useTransition } from "react";
 
 import type { PropertyActionState } from "@/app/admin/_actions/properties";
 import { admin } from "@/i18n/admin";
+import { defaultLocale } from "@/i18n/config";
 import { listingTypeOptions, propertyTypeOptions, statusOptions } from "@/lib/admin-labels";
 import { cn } from "@/lib/utils";
 import type { Area, Property } from "@/types/database";
@@ -45,7 +47,9 @@ export interface PropertyFormProps {
 
 export function PropertyForm({ mode, action, areas, compounds = [], defaults }: PropertyFormProps) {
   const [lang, setLang] = useState<"en" | "ar">("en");
-  const [state, formAction, isPending] = useActionState<PropertyActionState, FormData>(action, {});
+  const [state, setState] = useState<PropertyActionState>({});
+  const [isPending, startTransition] = useTransition();
+  const isCreate = mode === "create";
 
   const v = (value: string | number | null | undefined) =>
     value === null || value === undefined ? "" : String(value);
@@ -53,9 +57,56 @@ export function PropertyForm({ mode, action, areas, compounds = [], defaults }: 
   const enHidden = cn(lang !== "en" && "hidden");
   const arHidden = cn(lang !== "ar" && "hidden");
 
+  // Submitting imperatively (instead of a native `<form action>`) keeps every
+  // entered value when the action fails — React's form-action handling would
+  // auto-reset the fields. Only a successful create clears the form, and it
+  // also returns to the first field and scrolls up so the next item can be
+  // entered right away. The action runs inside a transition so `isPending`
+  // (and the disabled save button) stays accurate.
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    startTransition(async () => {
+      const next = await action(state, formData);
+      setState(next);
+      if (isCreate && next.ok) {
+        form.reset();
+        setLang("en");
+        form.querySelector<HTMLInputElement>("#title_en")?.focus();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  }
+
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {defaults?.id ? <input type="hidden" name="id" value={defaults.id} /> : null}
+      {isCreate && state.ok && state.createdId ? (
+        <div
+          role="status"
+          className="border-success/30 bg-success-surface flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-5 py-3 text-sm"
+        >
+          <span className="text-success font-medium">{admin.form.createdSuccess}</span>
+          {state.createdPublished ? (
+            <Link
+              href={`/${defaultLocale}/properties/${state.createdSlug}`}
+              rel="noreferrer"
+              className="text-action-navy underline"
+            >
+              {admin.form.viewProperty}
+            </Link>
+          ) : (
+            <span className="text-ink-muted">{admin.form.createdDraftHint}</span>
+          )}
+          <Link
+            href={`/admin/properties/${state.createdId}/edit`}
+            className="text-action-navy underline"
+          >
+            {admin.form.manageProperty}
+          </Link>
+        </div>
+      ) : null}
       <datalist id="compound-options">
         {compounds.map((name) => (
           <option key={name} value={name} />
@@ -425,12 +476,16 @@ export function PropertyForm({ mode, action, areas, compounds = [], defaults }: 
       <div className="flex flex-wrap items-center gap-4">
         <button type="submit" disabled={isPending} className="btn btn-primary text-sm">
           {isPending
-            ? admin.form.creating
-            : defaults?.id
-              ? admin.common.saveChanges
-              : admin.form.create}
+            ? isCreate
+              ? admin.form.creating
+              : admin.common.saving
+            : isCreate
+              ? admin.form.create
+              : admin.common.saveChanges}
         </button>
-        {state.ok ? <span className="text-success text-sm">{admin.common.saved}</span> : null}
+        {state.ok && !isCreate ? (
+          <span className="text-success text-sm">{admin.common.saved}</span>
+        ) : null}
         {state.error ? (
           <span role="alert" className="text-error text-sm">
             {state.error}

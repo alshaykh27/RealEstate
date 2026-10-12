@@ -13,6 +13,9 @@ import type { ListingType, PropertyStatus, PropertyType } from "@/types/database
 export interface PropertyActionState {
   error?: string;
   ok?: boolean;
+  createdId?: string;
+  createdSlug?: string;
+  createdPublished?: boolean;
 }
 
 function str(formData: FormData, name: string): string {
@@ -130,7 +133,11 @@ function buildPayload(formData: FormData) {
   } as const;
 }
 
-/** Creates a new property (English base required) and opens its edit screen. */
+/**
+ * Creates a new property (English base required). Returns the new id/slug so
+ * the add form can show a success message and reset itself, instead of
+ * navigating away.
+ */
 export async function createProperty(
   _prev: PropertyActionState,
   formData: FormData,
@@ -148,7 +155,7 @@ export async function createProperty(
   const { data, error } = await supabase
     .from("properties")
     .insert({ ...result.payload, slug })
-    .select("id, slug")
+    .select("id, slug, is_published")
     .single();
 
   if (error) {
@@ -160,7 +167,12 @@ export async function createProperty(
   updateTag("areas");
   updateTag(`property-${data.slug}`);
 
-  redirect(`/admin/properties/${data.id}/edit?created=1`);
+  return {
+    ok: true,
+    createdId: data.id as string,
+    createdSlug: data.slug as string,
+    createdPublished: data.is_published as boolean,
+  };
 }
 
 /** Updates an existing property. */

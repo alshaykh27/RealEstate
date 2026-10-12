@@ -12,7 +12,6 @@ export const metadata = { title: admin.form.editTitle };
 
 export default async function EditPropertyPage({
   params,
-  searchParams,
 }: PageProps<"/admin/properties/[id]/edit">) {
   const { id } = await params;
   const [property, areas, compounds] = await Promise.all([
@@ -23,8 +22,6 @@ export default async function EditPropertyPage({
 
   if (!property) notFound();
 
-  const search = await searchParams;
-  const justCreated = search.created === "1";
   const images = [...property.property_images].sort(
     (a, b) => a.sort_order - b.sort_order,
   ) as ImageRow[];
@@ -32,13 +29,6 @@ export default async function EditPropertyPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={admin.form.editTitle} />
-
-      {justCreated ? (
-        <p className="rounded-lg bg-[var(--color-success-surface)] px-4 py-3 text-sm text-[var(--color-success)]">
-          {admin.form.created}
-        </p>
-      ) : null}
-
       <PropertyForm
         mode="update"
         action={updateProperty}
