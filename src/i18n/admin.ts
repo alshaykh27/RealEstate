@@ -9,6 +9,9 @@ export const admin = {
   brand: "دارفيا",
   product: "لوحة التحكم",
   nav: {
+    label: "التنقل الرئيسي",
+    openMenu: "فتح القائمة",
+    closeMenu: "إغلاق القائمة",
     overview: "نظرة عامة",
     properties: "العقارات",
     settings: "الإعدادات",
