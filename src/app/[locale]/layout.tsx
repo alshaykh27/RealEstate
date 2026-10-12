@@ -71,8 +71,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
       lang={locale}
       dir={dirFor(locale)}
       className={`${tajawal.variable} ${ibmPlexSansArabic.variable} ${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <SiteHeader locale={locale} brand={brand} nav={dict.nav} language={dict.language} />
         <MotionProvider>{children}</MotionProvider>
         <SiteFooter locale={locale} brand={brand} dict={dict} contact={contact} />

@@ -35,8 +35,18 @@ export const metadata: Metadata = {
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${ibmPlexSansArabic.variable}`}>
-      <body className="bg-background text-ink min-h-screen font-sans antialiased">{children}</body>
+    <html
+      lang="ar"
+      dir="rtl"
+      className={`${tajawal.variable} ${ibmPlexSansArabic.variable}`}
+      suppressHydrationWarning
+    >
+      <body
+        className="bg-background text-ink min-h-screen font-sans antialiased"
+        suppressHydrationWarning
+      >
+        {children}
+      </body>
     </html>
   );
 }
