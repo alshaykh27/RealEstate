@@ -15,6 +15,9 @@ const dictionary: Dictionary = {
     subhead: "استعرض عقارات مميزة للبيع والإيجار في القاهرة الجديدة والتجمع الخامس وما حولها.",
     ctaPrimary: "استكشف العقارات",
     ctaWhatsapp: "تواصل واتساب",
+    videoPause: "إيقاف فيديو الخلفية",
+    videoPlay: "تشغيل فيديو الخلفية",
+    videoTitle: "فيديو ترويجي",
   },
   badges: {
     available: "متاح",
@@ -52,6 +55,7 @@ const dictionary: Dictionary = {
     yearBuilt: "سنة البناء",
     price: "السعر",
     address: "العنوان",
+    compound: "الكمبوند",
     listedOn: "تاريخ الإضافة",
     features: "المميزات",
     location: "الموقع",

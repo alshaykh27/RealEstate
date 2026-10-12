@@ -53,6 +53,10 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
         headline={heroHeadline}
         subhead={heroSubhead}
         ctaLabel={dict.hero.ctaPrimary}
+        videoUrl={settings?.promo_video_url}
+        videoPauseLabel={dict.hero.videoPause}
+        videoPlayLabel={dict.hero.videoPlay}
+        videoTitle={dict.hero.videoTitle}
       />
 
       {featured.length > 0 ? (

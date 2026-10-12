@@ -15,6 +15,7 @@ export interface PropertyFilters {
   listingType?: ListingType;
   propertyType?: PropertyType;
   areaId?: string;
+  compound?: string;
   status?: PropertyStatus;
   minPrice?: number;
   maxPrice?: number;
@@ -41,6 +42,8 @@ const LIST_SELECT = [
   "slug",
   "title_en",
   "title_ar",
+  "compound_en",
+  "compound_ar",
   "property_type",
   "listing_type",
   "status",
@@ -82,6 +85,7 @@ export async function searchProperties(filters: PropertyFilters = {}): Promise<P
   if (filters.propertyType) query = query.eq("property_type", filters.propertyType);
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.areaId) query = query.eq("area_id", filters.areaId);
+  if (filters.compound) query = query.eq("compound_en", filters.compound);
   if (filters.bedrooms !== undefined) query = query.gte("bedrooms", filters.bedrooms);
   if (filters.minPrice !== undefined) query = query.gte("price", filters.minPrice);
   if (filters.maxPrice !== undefined) query = query.lte("price", filters.maxPrice);
@@ -221,6 +225,55 @@ export async function getRelatedProperties(
   }
 
   return collected;
+}
+
+/** A compound suggestion for the listing filter (grouped by area on the client). */
+export interface CompoundOption {
+  /** Canonical, language-neutral filter value (the stored `compound_en`). */
+  key: string;
+  name_en: string;
+  name_ar: string | null;
+  areaId: string | null;
+}
+
+/**
+ * Cached, de-duplicated list of compounds used by published properties, so the
+ * filter can scope the compound dropdown to the selected area.
+ */
+export async function getPublishedCompounds(): Promise<CompoundOption[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("properties");
+
+  const supabase = getSupabasePublicClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("compound_en, compound_ar, area_id")
+    .eq("is_published", true)
+    .is("deleted_at", null)
+    .not("compound_en", "is", null);
+
+  if (error) {
+    throw new Error(`Failed to load compounds: ${error.message}`);
+  }
+
+  const rows =
+    (data as unknown as
+      | { compound_en: string | null; compound_ar: string | null; area_id: string | null }[]
+      | null) ?? [];
+
+  const seen = new Set<string>();
+  const compounds: CompoundOption[] = [];
+  for (const row of rows) {
+    const name = (row.compound_en ?? "").trim();
+    if (!name) continue;
+    const dedupeKey = `${row.area_id ?? ""}::${name.toLowerCase()}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    compounds.push({ key: name, name_en: name, name_ar: row.compound_ar, areaId: row.area_id });
+  }
+
+  return compounds.sort((a, b) => a.name_en.localeCompare(b.name_en, "en"));
 }
 
 /** Cached slugs of all published properties (for generateStaticParams). */

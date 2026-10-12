@@ -4,7 +4,14 @@ import { PropertyImage } from "@/components/properties/property-image";
 import { StatusBadge } from "@/components/properties/status-badge";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { coverImage, formatArea, formatPrice, localize, propertyImageUrl } from "@/lib/content";
+import {
+  coverImage,
+  formatArea,
+  formatPrice,
+  localize,
+  localizedText,
+  propertyImageUrl,
+} from "@/lib/content";
 import type { PropertyListItem } from "@/types/database";
 
 export function PropertyCard({
@@ -22,6 +29,7 @@ export function PropertyCard({
     : null;
   const cover = coverImage(property.property_images);
   const alt = cover ? localize(locale, cover.alt_en, cover.alt_ar) : title;
+  const compoundName = localizedText(locale, property.compound_en, property.compound_ar);
   const href = `/${locale}/properties/${property.slug}`;
 
   return (
@@ -58,6 +66,12 @@ export function PropertyCard({
                 <span className="text-gold-deep font-semibold">{dict.common.areaLabel}: </span>
                 {areaName}
               </span>
+            </p>
+          ) : null}
+          {compoundName ? (
+            <p className="text-ink-muted min-w-0 truncate text-xs">
+              <span className="font-medium">{dict.fields.compound}: </span>
+              {compoundName}
             </p>
           ) : null}
         </div>

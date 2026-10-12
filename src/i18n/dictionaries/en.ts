@@ -14,6 +14,9 @@ const dictionary = {
       "Explore premium properties for sale and rent in New Cairo, Fifth Settlement and beyond.",
     ctaPrimary: "Explore Properties",
     ctaWhatsapp: "Chat on WhatsApp",
+    videoPause: "Pause background video",
+    videoPlay: "Play background video",
+    videoTitle: "Promotional video",
   },
   badges: {
     available: "Available",
@@ -51,6 +54,7 @@ const dictionary = {
     yearBuilt: "Year built",
     price: "Price",
     address: "Address",
+    compound: "Compound",
     listedOn: "Listed",
     features: "Features",
     location: "Location",

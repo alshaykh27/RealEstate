@@ -12,6 +12,11 @@ Public read is `is_published and deleted_at is null`; `is_sample` no longer affe
 
 - `supabase/migrations/20261010123342_phase_3_schema.sql` — the full schema (single source of truth),
   wrapped in `begin; … commit;`, run once on a **fresh** project via the SQL Editor.
+- `supabase/migrations/20261012120000_add_property_compound.sql` — adds the nullable
+  `compound_en` / `compound_ar` columns to `properties` (post-Phase-3 change; run via the SQL Editor).
+- `supabase/migrations/20261012130000_add_promo_video_url.sql` — adds the nullable
+  `site_settings.promo_video_url` column for the landing hero's optional external promo video
+  (post-Phase-3 change; applied to the live project).
 - `supabase/grant-admin.sql` — looks a user up in `auth.users` by **email** and grants
   `public.profiles.is_admin` (edit the email placeholder, then run).
 - `scripts/verify-phase-3.mjs` (`npm run verify:phase3`) — REST + Storage checks with the **anon key
@@ -55,6 +60,10 @@ Public read is `is_published and deleted_at is null`; `is_sample` no longer affe
 
 - **Translatable** (`_en` required, `_ar` optional): `title`, `description`, `address`, `features`
   (array), `meta_title`, `meta_description`
+- **Nullable translatable:** `compound_en` / `compound_ar` — both optional, because not every
+  property sits inside a named compound. When present, English is the base and Arabic falls back to
+  English. Added by `supabase/migrations/20261012120000_add_property_compound.sql`; powers the public
+  compound filter. Filtering matches the language-neutral `compound_en` value, never translated text.
 - **Neutral:** `id`, `slug` (shared), `area_id` (FK), `created_by`; codes `property_type`,
   `listing_type`, `status`; numbers `price`, `currency`, `area_sqm`, `bedrooms`, `bathrooms`,
   `floor`, `year_built`, `latitude`, `longitude`; flags `is_published`, `is_featured`, `is_sample`;
@@ -85,7 +94,10 @@ Public read is `is_published and deleted_at is null`; `is_sample` no longer affe
 - **Translatable:** `brand_name_en` / `brand_name_ar`, `hero_headline_en` / `hero_headline_ar`,
   `hero_subhead_en` / `hero_subhead_ar`, `about_en` / `about_ar`
 - **Neutral:** `whatsapp_number`, `phone`, `email`, `facebook_url`, `logo_path`,
-  `default_og_image`, `updated_at`
+  `default_og_image`, `promo_video_url`, `updated_at`
+- `promo_video_url` (nullable) is the hero's optional promotional video — a YouTube or direct
+  `.mp4`/`.webm` URL rendered client-side, never uploaded to Storage. Added by
+  `supabase/migrations/20261012130000_add_promo_video_url.sql`.
 - Enforced single row via `check (id = 1)`.
 
 ### `profiles` (admin role source of truth)

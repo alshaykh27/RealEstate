@@ -53,6 +53,7 @@ export function parsePropertySearch(
     filters: {
       listingType: pickOne<ListingType>(searchParams.listingType, LISTING_TYPES),
       propertyType: pickOne<PropertyType>(searchParams.propertyType, PROPERTY_TYPES),
+      compound: firstParam(searchParams.compound)?.trim() || undefined,
       status: pickOne<PropertyStatus>(searchParams.status, PROPERTY_STATUSES),
       bedrooms: toNumber(searchParams.bedrooms),
       minPrice: toNumber(searchParams.minPrice),

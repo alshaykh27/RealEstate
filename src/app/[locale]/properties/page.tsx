@@ -13,7 +13,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { localize } from "@/lib/content";
 import { getAreaBySlug, getAreas } from "@/lib/data/areas";
-import { DEFAULT_PAGE_SIZE, searchProperties } from "@/lib/data/properties";
+import { DEFAULT_PAGE_SIZE, getPublishedCompounds, searchProperties } from "@/lib/data/properties";
 import {
   firstParam,
   parsePropertySearch,
@@ -80,12 +80,15 @@ async function Filters({
   dict: Dictionary;
   propertyTypes: FilterTypeOption[];
 }) {
-  const areas = await getAreas();
+  const [areas, compounds] = await Promise.all([getAreas(), getPublishedCompounds()]);
+  const areaSlugById = new Map(areas.map((area) => [area.id, area.slug]));
+
   const labels: PropertyFiltersLabels = {
     heading: dict.search.filtersHeading,
     listingType: dict.fields.listingType,
     propertyType: dict.fields.propertyType,
     area: dict.nav.areas,
+    compound: dict.fields.compound,
     bedrooms: dict.fields.bedrooms,
     price: dict.fields.price,
     size: dict.fields.area,
@@ -107,6 +110,11 @@ async function Filters({
       areas={areas.map((area) => ({
         slug: area.slug,
         name: localize(locale, area.name_en, area.name_ar),
+      }))}
+      compounds={compounds.map((compound) => ({
+        key: compound.key,
+        label: localize(locale, compound.name_en, compound.name_ar),
+        areaSlug: compound.areaId ? (areaSlugById.get(compound.areaId) ?? null) : null,
       }))}
       propertyTypes={propertyTypes}
       bedrooms={BEDROOM_OPTIONS}

@@ -13,11 +13,19 @@ export interface FilterTypeOption {
   label: string;
 }
 
+export interface FilterCompoundOption {
+  /** Canonical, language-neutral filter value (the stored `compound_en`). */
+  key: string;
+  label: string;
+  areaSlug: string | null;
+}
+
 export interface PropertyFiltersLabels {
   heading: string;
   listingType: string;
   propertyType: string;
   area: string;
+  compound: string;
   bedrooms: string;
   price: string;
   size: string;
@@ -38,6 +46,7 @@ interface FilterValues {
   listingType: string;
   propertyType: string;
   area: string;
+  compound: string;
   bedrooms: string;
   minPrice: string;
   maxPrice: string;
@@ -50,6 +59,7 @@ const EMPTY: FilterValues = {
   listingType: "",
   propertyType: "",
   area: "",
+  compound: "",
   bedrooms: "",
   minPrice: "",
   maxPrice: "",
@@ -64,11 +74,13 @@ const labelClass = "text-ink-secondary flex flex-col gap-1 text-xs font-medium";
 
 export function PropertyFilters({
   areas,
+  compounds,
   propertyTypes,
   bedrooms,
   labels,
 }: {
   areas: FilterAreaOption[];
+  compounds: FilterCompoundOption[];
   propertyTypes: FilterTypeOption[];
   bedrooms: number[];
   labels: PropertyFiltersLabels;
@@ -81,6 +93,7 @@ export function PropertyFilters({
     listingType: searchParams.get("listingType") ?? "",
     propertyType: searchParams.get("propertyType") ?? "",
     area: searchParams.get("area") ?? "",
+    compound: searchParams.get("compound") ?? "",
     bedrooms: searchParams.get("bedrooms") ?? "",
     minPrice: searchParams.get("minPrice") ?? "",
     maxPrice: searchParams.get("maxPrice") ?? "",
@@ -91,6 +104,19 @@ export function PropertyFilters({
 
   function update<K extends keyof FilterValues>(key: K, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateArea(value: string) {
+    setValues((current) => {
+      const stillAvailable = compoundsForArea(value).some(
+        (entry) => entry.key === current.compound,
+      );
+      return { ...current, area: value, compound: stillAvailable ? current.compound : "" };
+    });
+  }
+
+  function compoundsForArea(area: string): FilterCompoundOption[] {
+    return area ? compounds.filter((entry) => entry.areaSlug === area) : compounds;
   }
 
   function buildQuery(): string {
@@ -157,13 +183,29 @@ export function PropertyFilters({
           {labels.area}
           <select
             value={values.area}
-            onChange={(event) => update("area", event.target.value)}
+            onChange={(event) => updateArea(event.target.value)}
             className={fieldClass}
           >
             <option value="">{labels.all}</option>
             {areas.map((area) => (
               <option key={area.slug} value={area.slug}>
                 {area.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className={labelClass}>
+          {labels.compound}
+          <select
+            value={values.compound}
+            onChange={(event) => update("compound", event.target.value)}
+            className={fieldClass}
+          >
+            <option value="">{labels.all}</option>
+            {compoundsForArea(values.area).map((compound) => (
+              <option key={`${compound.areaSlug ?? ""}-${compound.key}`} value={compound.key}>
+                {compound.label}
               </option>
             ))}
           </select>

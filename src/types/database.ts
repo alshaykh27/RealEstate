@@ -54,6 +54,8 @@ export interface Property {
   description_ar: string | null;
   address_en: string;
   address_ar: string | null;
+  compound_en: string | null;
+  compound_ar: string | null;
   features_en: string[];
   features_ar: string[] | null;
   meta_title_en: string | null;
@@ -91,6 +93,8 @@ export type PropertyListItem = Pick<
   | "slug"
   | "title_en"
   | "title_ar"
+  | "compound_en"
+  | "compound_ar"
   | "property_type"
   | "listing_type"
   | "status"
@@ -122,5 +126,6 @@ export interface SiteSettings {
   facebook_url: string | null;
   logo_path: string | null;
   default_og_image: string | null;
+  promo_video_url: string | null;
   updated_at: string;
 }

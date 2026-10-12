@@ -99,7 +99,7 @@ dark text if strict AA compliance is required.
 - Layout uses logical properties only (`ps/pe`, `ms/me`, `text-start/end`, `start/end`) — never hardcoded left/right
 - Mirror only directional icons (arrows, chevrons); never mirror photos, logos, or brand glyphs
 - In Arabic, prices/phones/URLs are wrapped in `<bdi dir="ltr">` to isolate LTR runs; currency `ج.م` placed per RTL convention
-- **Bilingual content model:** property records store Arabic + English fields (per-field). Arabic is required; English is optional per listing, and the admin list flags listings missing English. See `docs/project-plan.md`.
+- **Bilingual content model:** property records store Arabic + English fields (per-field). English is the required base; Arabic is optional per listing and falls back to English, and the admin list flags listings missing Arabic. (Superseded the earlier "Arabic required, English optional" rule — see `docs/phase-3-db-design.md` and `docs/project-plan.md`.)
 
 ## 5. Pages and routes
 

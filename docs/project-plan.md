@@ -38,9 +38,21 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
   never blocks publishing.
 - **Slug history:** slugs are generated once from the English title and edited manually only;
   every previous slug is kept in `property_slug_history` for 301 redirects and cannot be reused.
-- **Media limits:** max 20 photos per property, max 3 MiB per stored image, types JPEG/PNG/WebP
-  (client compresses to WebP before upload) — enforced in the DB and the storage bucket.
-  ⚠️ The 20-photo count is still to be confirmed against Phase 1.
+- **Compound:** an optional `compound_en` / `compound_ar` pair on `properties` (both **nullable** —
+  not every property is in a named compound) for compounds inside an area. Visitors filter the
+  listing by compound via an **area-scoped dropdown**; filtering matches the language-neutral
+  `compound_en` value. Added by `supabase/migrations/20261012120000_add_property_compound.sql`
+  (applied via the SQL Editor).
+- **Promo video (hero):** the landing hero may show one optional promotional video, stored as the
+  nullable `site_settings.promo_video_url`. It accepts a YouTube link (rendered as a lazy,
+  `youtube-nocookie` embed, autoplay muted) or a direct `https` `.mp4`/`.webm` URL. The video is
+  **never uploaded to Supabase** — no bucket and no egress. When empty, on `prefers-reduced-motion`,
+  on Save-Data/slow connections, or on load error/timeout/blocked autoplay, the hero falls back to
+  the existing image crossfade (the first image is the priority poster/LCP element). Added by
+  `supabase/migrations/20261012130000_add_promo_video_url.sql`.
+- **Property media limits:** max 20 photos per property, max 3 MiB per stored image, types
+  JPEG/PNG/WebP (client compresses to WebP before upload) — enforced in the DB and the storage
+  bucket. ⚠️ The 20-photo count is still to be confirmed against Phase 1.
 - **Admin role:** `public.profiles.is_admin` (checked via the `security definer` `public.is_admin()`
   helper). All writes require an admin; never "any authenticated user".
 - **Launch cleanup:** all `is_sample` rows and their storage objects must be removed before launch
@@ -49,7 +61,8 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
   Arabic-only (RTL)**; the content-authoring fields remain bilingual (English base, Arabic optional).
 - **Contact:** WhatsApp + Facebook only (no inquiry form). Contact brand colours are a scoped
   exception (see `docs/phase-1-design.md` §2).
-- **Media:** photos only (no video).
+- **Property media:** photos only (no video uploads). The landing hero may embed/point at an
+  external promo video URL (see "Promo video" above); nothing is stored in Supabase.
 - **Sample data:** flagged `is_sample` for pre-launch removal; not hidden by RLS.
 - **i18n approach:** lightweight custom dictionaries (no `next-intl` dependency).
 
@@ -62,9 +75,13 @@ Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase + Vercel, on free 
 - `NEXT_PUBLIC_SITE_URL` (metadata/OG base)
 
 Phase 3 schema is the migration `supabase/migrations/20261010123342_phase_3_schema.sql` — applied once
-on the fresh project. The admin role was granted with `supabase/grant-admin.sql`, and verification ran
-with `npm run verify:phase3` (anon key only). Applying the migration used a one-off `SUPABASE_DB_URL`
-(a Postgres connection string), since rotated and removed from `.env.local`; the app does **not** need it.
+on the fresh project. Later additive migrations:
+`supabase/migrations/20261012120000_add_property_compound.sql` (nullable compound columns) and
+`supabase/migrations/20261012130000_add_promo_video_url.sql` (nullable hero promo video URL). Both
+are applied to the live project. The admin role was granted with `supabase/grant-admin.sql`, and
+verification ran with `npm run verify:phase3` (anon key only). Applying migrations used the
+`SUPABASE_DB_URL` Postgres connection string that is still present in `.env.local` locally; the app
+itself does **not** need it.
 
 ## Quality gates
 
@@ -76,8 +93,9 @@ with `npm run verify:phase3` (anon key only). Applying the migration used a one-
 - **Phase 4 (public site) implemented, verified, approved & pushed** on 2026-10-10: bilingual home,
   listings + filters, detail with similar-properties (cross-area fallback, clearly area-labeled),
   areas index/detail, about, contact, localized 404s, real data layer via anon Supabase reads.
-- ~~Rotate the database password and remove `SUPABASE_DB_URL` from `.env.local`.~~ **Done** (rotated;
-  `SUPABASE_DB_URL` removed — the app uses only the public env vars).
+- ~~Rotate the database password and remove `SUPABASE_DB_URL` from `.env.local`.~~ **Not done:** the
+  `SUPABASE_DB_URL` Postgres connection string is still present in `.env.local` (used only for manual
+  migrations; the app itself uses only the public env vars). Rotate/remove before launch.
 - ~~Dependency gap.~~ **Fixed:** `@supabase/ssr`, `@supabase/supabase-js`, `clsx` and `tailwind-merge`
   were undeclared; all four are now pinned in `dependencies`. A clean `npm install` + `npm run build`
   was verified from an emptied `node_modules`.

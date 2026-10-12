@@ -17,6 +17,7 @@ import {
   formatPrice,
   hasValue,
   localize,
+  localizedText,
   propertyImageUrl,
 } from "@/lib/content";
 import {
@@ -53,11 +54,12 @@ export async function generateMetadata({
     property.meta_description_en ?? property.description_en,
     property.meta_description_ar ?? property.description_ar,
   );
-
   const missingArabic = !hasValue(property.title_ar) && !hasValue(property.description_ar);
+  const compound = localizedText(locale, property.compound_en, property.compound_ar);
+  const titleWithCompound = compound ? `${title} — ${compound}` : title;
 
   return {
-    title,
+    title: titleWithCompound,
     description,
     alternates: localeAlternates(locale, `properties/${property.slug}`),
     robots: locale === "ar" && missingArabic ? { index: false, follow: true } : undefined,
@@ -98,6 +100,8 @@ async function PropertyDetail({ params }: { params: Promise<{ locale: string; sl
   const areaName = property.area
     ? localize(locale, property.area.name_en, property.area.name_ar)
     : null;
+  const compoundName = localizedText(locale, property.compound_en, property.compound_ar);
+  const locationLine = [compoundName, areaName].filter(hasValue).join(" · ");
   const features = localize(locale, property.features_en, property.features_ar) ?? [];
 
   const gallery: GalleryImage[] = sortedImages(property.property_images).map((image) => ({
@@ -144,7 +148,7 @@ async function PropertyDetail({ params }: { params: Promise<{ locale: string; sl
 
             <div className="flex flex-col gap-1">
               <h1 className="text-ink text-2xl font-bold">{title}</h1>
-              {areaName ? <p className="text-ink-muted">{areaName}</p> : null}
+              {locationLine ? <p className="text-ink-muted">{locationLine}</p> : null}
             </div>
 
             <p className="text-navy font-heading text-2xl font-bold">
@@ -152,6 +156,7 @@ async function PropertyDetail({ params }: { params: Promise<{ locale: string; sl
             </p>
 
             <dl className="border-line grid grid-cols-2 gap-4 border-t pt-5 text-sm">
+              {compoundName ? <Detail label={dict.fields.compound} value={compoundName} /> : null}
               <Detail
                 label={dict.fields.propertyType}
                 value={dict.propertyType[property.property_type]}
