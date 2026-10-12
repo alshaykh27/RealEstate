@@ -224,7 +224,7 @@ export function Hero({
             <div
               key={image.src}
               className="absolute inset-0 transition-opacity duration-[1500ms] ease-out motion-reduce:transition-none"
-              style={{ opacity: (reduce ? 0 : index) === i ? 1 : 0 }}
+              style={{ opacity: index === i ? 1 : 0 }}
             >
               <Image
                 src={image.src}
@@ -283,8 +283,8 @@ export function Hero({
         <m.div
           className="flex max-w-2xl flex-col items-start gap-6 text-start"
           variants={container}
-          initial={reduce ? undefined : "hidden"}
-          animate={reduce ? undefined : "show"}
+          initial="hidden"
+          animate="show"
         >
           <m.p
             variants={item}

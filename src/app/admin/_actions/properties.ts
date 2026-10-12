@@ -43,8 +43,43 @@ function linesOrEmpty(formData: FormData, name: string): string[] {
     .filter((line) => line.length > 0);
 }
 
-function isUniqueViolation(code: string | undefined): boolean {
-  return code === "23505";
+function logDbError(
+  context: string,
+  error: { code?: string; message?: string; details?: string | null; hint?: string | null },
+): void {
+  console.error(
+    `[admin:properties:${context}]`,
+    JSON.stringify({
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    }),
+  );
+}
+
+/**
+ * Turns a Postgres/PostgREST error into a specific admin-facing message so the
+ * UI never shows a blanket "generic error". Unmapped codes stay generic.
+ */
+function messageForDbError(error: { code?: string; message?: string }): string {
+  const code = error.code ?? "";
+  const message = (error.message ?? "").toLowerCase();
+
+  if (code === "23505" || message.includes("was used previously")) return admin.form.slugTaken;
+  if (code === "23503") return admin.form.errorInvalidArea;
+  if (code === "22003") return admin.form.errorPriceTooLarge;
+  if (code === "22001") return admin.form.errorTooLong;
+  if (code === "23514") {
+    if (message.includes("year_built")) return admin.form.errorYearRange;
+    if (message.includes("latitude") || message.includes("longitude")) {
+      return admin.form.errorCoordinates;
+    }
+    if (message.includes("area_sqm")) return admin.form.errorAreaSqm;
+    if (message.includes("bedrooms") || message.includes("bathrooms")) return admin.form.errorRooms;
+    return admin.form.errorOutOfRange;
+  }
+  return admin.common.genericError;
 }
 
 function buildPayload(formData: FormData) {
@@ -107,6 +142,7 @@ export async function createProperty(
 
   const providedSlug = str(formData, "slug");
   const slug = providedSlug || slugify(result.payload.title_en);
+  if (!slug) return { error: admin.form.errorSlugRequired };
 
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase
@@ -116,9 +152,8 @@ export async function createProperty(
     .single();
 
   if (error) {
-    return {
-      error: isUniqueViolation(error.code) ? admin.form.slugTaken : admin.common.genericError,
-    };
+    logDbError("create", error);
+    return { error: messageForDbError(error) };
   }
 
   updateTag("properties");
@@ -148,7 +183,10 @@ export async function updateProperty(
     .eq("id", id)
     .maybeSingle();
 
-  if (existingError || !existing) return { error: admin.common.genericError };
+  if (existingError || !existing) {
+    if (existingError) logDbError("update:load", existingError);
+    return { error: admin.common.genericError };
+  }
 
   const providedSlug = str(formData, "slug");
   const slug = providedSlug || (existing.slug as string);
@@ -166,9 +204,8 @@ export async function updateProperty(
     .eq("id", id);
 
   if (error) {
-    return {
-      error: isUniqueViolation(error.code) ? admin.form.slugTaken : admin.common.genericError,
-    };
+    logDbError("update", error);
+    return { error: messageForDbError(error) };
   }
 
   updateTag("properties");

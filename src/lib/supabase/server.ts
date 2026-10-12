@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 function getSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -14,6 +15,13 @@ function getSupabaseEnv() {
 }
 
 export async function getSupabaseServerClient() {
+  // The authenticated client is inherently request-bound: it reads the session
+  // cookie and Supabase's auth client (GoTrueClient) reads `Date.now()` while
+  // bootstrapping. Awaiting `connection()` first keeps that work out of any
+  // prerender pass (it stalls prerendering and is a no-op at request time),
+  // which is what Cache Components requires for per-request values.
+  await connection();
+
   const { url, anonKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 

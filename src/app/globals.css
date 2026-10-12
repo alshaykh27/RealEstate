@@ -153,7 +153,8 @@
   }
 
   /* Honour the OS reduced-motion preference globally: kill keyframes and
-     transitions. JS-driven motion additionally checks useReducedMotion(). */
+     transitions. JS-driven motion is handled by MotionConfig reducedMotion="user"
+     (see motion-provider.tsx), which keeps SSR/hydration output identical. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

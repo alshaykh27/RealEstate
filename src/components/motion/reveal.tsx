@@ -1,6 +1,6 @@
 "use client";
 
-import { m, useReducedMotion } from "motion/react";
+import { m } from "motion/react";
 import { Children, type ReactNode } from "react";
 
 /** Shared cinematic ease — slow-out, never bouncy. */
@@ -8,8 +8,10 @@ export const EASE = [0.16, 1, 0.3, 1] as const;
 export const REVEAL_VIEWPORT = { once: true, margin: "0px 0px -15% 0px" } as const;
 
 /**
- * Fade + rise as the element scrolls into view (once). Renders a static
- * wrapper when the user prefers reduced motion.
+ * Fade + rise as the element scrolls into view (once). Always renders the same
+ * markup on server and client so hydration matches; reduced-motion users are
+ * handled by `MotionConfig reducedMotion="user"`, which skips the transform and
+ * leaves only the gentle opacity fade.
  */
 export function Reveal({
   children,
@@ -22,12 +24,6 @@ export function Reveal({
   delay?: number;
   y?: number;
 }) {
-  const reduce = useReducedMotion();
-
-  if (reduce) {
-    return <div className={className}>{children}</div>;
-  }
-
   return (
     <m.div
       className={className}
@@ -42,9 +38,9 @@ export function Reveal({
 }
 
 /**
- * Staggered reveal for a set of siblings (section headers, card rows).
- * Each child is wrapped in a motion element; on reduced motion they render
- * as plain stacked content.
+ * Staggered reveal for a set of siblings (section headers, card rows). Reduced
+ * motion keeps the same markup but `MotionConfig` skips the rise, so the items
+ * simply fade in.
  */
 export function RevealGroup({
   children,
@@ -57,9 +53,6 @@ export function RevealGroup({
   stagger?: number;
   y?: number;
 }) {
-  const reduce = useReducedMotion();
-  if (reduce) return <div className={className}>{children}</div>;
-
   return (
     <m.div
       className={className}
