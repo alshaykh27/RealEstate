@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
-import { updateAreas } from "@/app/admin/_actions/settings";
+import { createArea, updateAreas, type AreaActionState } from "@/app/admin/_actions/settings";
 import { admin } from "@/i18n/admin";
 import type { Area } from "@/types/database";
 
@@ -12,17 +12,102 @@ interface Item {
   isActive: boolean;
 }
 
-export function AreasManager({ areas }: { areas: Area[] }) {
-  const [items, setItems] = useState<Item[]>(() =>
-    areas.map((area) => ({
-      id: area.id,
-      name: area.name_ar || area.name_en,
-      isActive: area.is_active,
-    })),
+const inputClass =
+  "border-line-strong bg-surface text-ink focus-visible:outline-focus-ring w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
+
+/** Inline form for creating a brand-new area. Resets itself on success. */
+function AddAreaForm() {
+  const [state, formAction, isPending] = useActionState<AreaActionState, FormData>(createArea, {});
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (state.ok) formRef.current?.reset();
+  }, [state.ok]);
+
+  return (
+    <form ref={formRef} action={formAction} className="border-line mt-6 border-t pt-5">
+      <h3 className="text-ink mb-3 text-sm font-semibold">{admin.areas.addTitle}</h3>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5" dir="ltr">
+          <label htmlFor="area-name-en" className="text-ink text-start text-sm font-medium">
+            {admin.areas.nameEn}
+          </label>
+          <input id="area-name-en" name="name_en" required dir="ltr" className={inputClass} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="area-name-ar" className="text-ink text-sm font-medium">
+            {admin.areas.nameAr}
+          </label>
+          <input id="area-name-ar" name="name_ar" className={inputClass} />
+        </div>
+        <div className="flex flex-col gap-1.5" dir="ltr">
+          <label htmlFor="area-description-en" className="text-ink text-start text-sm font-medium">
+            {admin.areas.descriptionEn}
+          </label>
+          <textarea
+            id="area-description-en"
+            name="description_en"
+            required
+            dir="ltr"
+            rows={2}
+            className={inputClass}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="area-description-ar" className="text-ink text-sm font-medium">
+            {admin.areas.descriptionAr}
+          </label>
+          <textarea
+            id="area-description-ar"
+            name="description_ar"
+            rows={2}
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      {state.error ? (
+        <p role="alert" className="text-error mt-3 text-sm">
+          {state.error}
+        </p>
+      ) : null}
+      {state.ok ? <p className="text-success mt-3 text-sm">{admin.areas.addSuccess}</p> : null}
+
+      <div className="mt-4">
+        <button type="submit" disabled={isPending} className="btn btn-primary text-sm">
+          {isPending ? admin.areas.addSubmitting : admin.areas.addSubmit}
+        </button>
+      </div>
+    </form>
   );
+}
+
+function toItems(areas: Area[]): Item[] {
+  return areas.map((area) => ({
+    id: area.id,
+    name: area.name_ar || area.name_en,
+    isActive: area.is_active,
+  }));
+}
+
+export function AreasManager({ areas }: { areas: Area[] }) {
+  const [items, setItems] = useState<Item[]>(() => toItems(areas));
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-sync when the server gives us a fresh `areas` list (e.g. right after
+  // AddAreaForm below creates one — Next re-renders this page's server
+  // component after the action, which passes a new `areas` array down). Done
+  // during render (not an Effect) per React's "adjusting state when a prop
+  // changes" pattern, so it doesn't cause an extra render pass.
+  const [prevAreas, setPrevAreas] = useState(areas);
+  if (areas !== prevAreas) {
+    setPrevAreas(areas);
+    setItems(toItems(areas));
+    setSaved(false);
+  }
 
   function move(index: number, delta: number) {
     const target = index + delta;
@@ -108,6 +193,8 @@ export function AreasManager({ areas }: { areas: Area[] }) {
           </span>
         ) : null}
       </div>
+
+      <AddAreaForm />
     </section>
   );
 }

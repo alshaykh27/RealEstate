@@ -110,6 +110,16 @@ export type PropertyListItem = Pick<
   property_images: PropertyImage[];
 };
 
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SiteSettings {
   id: number;
   brand_name_en: string;

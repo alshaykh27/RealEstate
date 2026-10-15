@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   Area,
+  Customer,
   Property,
   PropertyImage,
   PropertyWithRelations,
@@ -145,6 +146,21 @@ export async function getAdminCompounds(): Promise<string[]> {
   }
 
   return [...names].sort((a, b) => a.localeCompare(b, "en"));
+}
+
+/** Every logged customer/lead, newest first, for the admin customers screen. */
+export async function getAdminCustomers(): Promise<Customer[]> {
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to load customers: ${error.message}`);
+  }
+
+  return (data as unknown as Customer[] | null) ?? [];
 }
 
 export type { PropertyWithRelations };

@@ -7,7 +7,7 @@ import { admin } from "@/i18n/admin";
 import { requireAdmin } from "@/lib/auth";
 import { PROPERTY_IMAGE_BUCKET } from "@/lib/content";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/slug";
+import { slugify, slugifyWithSuffix } from "@/lib/slug";
 import type { ListingType, PropertyStatus, PropertyType } from "@/types/database";
 
 export interface PropertyActionState {
@@ -154,21 +154,45 @@ export async function createProperty(
   if ("error" in result) return { error: result.error };
 
   const providedSlug = str(formData, "slug");
-  const slug = providedSlug || slugify(result.payload.title_en);
-  if (!slug) return { error: admin.form.errorSlugRequired };
+  // Many listings share the same title ("شقة للبيع" in the same area, say),
+  // and that's expected — the slug is an internal URL detail, not something
+  // the admin should have to think about. When the slug came from the title
+  // (the admin left the Slug field blank), a collision is resolved silently
+  // by appending a short random suffix; only an explicit, hand-typed slug
+  // still surfaces `admin.form.slugTaken` on collision.
+  const baseSlug = providedSlug || slugify(result.payload.title_en);
+  if (!baseSlug) return { error: admin.form.errorSlugRequired };
+  const autoSlug = !providedSlug;
 
   const requestedPublished = result.payload.is_published;
 
   const supabase = await getSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("properties")
-    .insert({ ...result.payload, is_published: false, slug })
-    .select("id, slug")
-    .single();
 
-  if (error) {
-    logDbError("create", error);
-    return { error: messageForDbError(error) };
+  let slug = baseSlug;
+  let data: { id: string; slug: string } | null = null;
+  let error: { code?: string; message?: string } | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const insertResult = await supabase
+      .from("properties")
+      .insert({ ...result.payload, is_published: false, slug })
+      .select("id, slug")
+      .single();
+
+    data = insertResult.data;
+    error = insertResult.error;
+    if (!error) break;
+
+    const isSlugCollision =
+      error.code === "23505" && (error.message ?? "").toLowerCase().includes("slug");
+    if (!autoSlug || !isSlugCollision) break;
+
+    slug = slugifyWithSuffix(result.payload.title_en, crypto.randomUUID().slice(0, 6));
+  }
+
+  if (error || !data) {
+    logDbError("create", error ?? {});
+    return { error: messageForDbError(error ?? {}) };
   }
 
   updateTag("properties");
@@ -177,8 +201,8 @@ export async function createProperty(
 
   return {
     ok: true,
-    createdId: data.id as string,
-    createdSlug: data.slug as string,
+    createdId: data.id,
+    createdSlug: data.slug,
     requestedPublished,
   };
 }

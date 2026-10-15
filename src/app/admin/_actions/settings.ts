@@ -5,6 +5,7 @@ import { updateTag } from "next/cache";
 import { admin } from "@/i18n/admin";
 import { requireAdmin } from "@/lib/auth";
 import { PROPERTY_IMAGE_BUCKET } from "@/lib/content";
+import { slugify } from "@/lib/slug";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { isValidPromoVideoUrl } from "@/lib/video";
 
@@ -121,6 +122,51 @@ export async function updateAreas(
       .update({ is_active: item.isActive, sort_order: item.sortOrder })
       .eq("id", item.id);
     if (error) return { error: admin.common.genericError };
+  }
+
+  updateTag("areas");
+  return { ok: true };
+}
+
+export interface AreaActionState {
+  error?: string;
+  ok?: boolean;
+}
+
+/** Creates a new area (English name + description required, Arabic optional). */
+export async function createArea(
+  _prev: AreaActionState,
+  formData: FormData,
+): Promise<AreaActionState> {
+  await requireAdmin();
+
+  const nameEn = str(formData, "name_en");
+  const descriptionEn = str(formData, "description_en");
+
+  if (!nameEn || !descriptionEn) {
+    return { error: admin.common.required };
+  }
+
+  const slug = slugify(nameEn);
+  if (!slug) return { error: admin.areas.errorNameRequired };
+
+  const supabase = await getSupabaseServerClient();
+
+  const { count } = await supabase.from("areas").select("id", { count: "exact", head: true });
+
+  const { error } = await supabase.from("areas").insert({
+    slug,
+    name_en: nameEn,
+    name_ar: nullable(formData, "name_ar"),
+    description_en: descriptionEn,
+    description_ar: nullable(formData, "description_ar"),
+    sort_order: count ?? 0,
+  });
+
+  if (error) {
+    if (error.code === "23505") return { error: admin.areas.errorSlugTaken };
+    console.error("[admin:areas:create]", error.message);
+    return { error: admin.common.genericError };
   }
 
   updateTag("areas");

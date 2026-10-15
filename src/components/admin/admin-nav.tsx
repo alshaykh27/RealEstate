@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const items = [
   { href: "/admin", label: admin.nav.overview, exact: true },
   { href: "/admin/properties", label: admin.nav.properties, exact: false },
+  { href: "/admin/customers", label: admin.nav.customers, exact: false },
   { href: "/admin/settings", label: admin.nav.settings, exact: false },
 ];
 
