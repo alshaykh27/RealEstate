@@ -3,15 +3,19 @@ import type { ListingType, PropertyStatus, PropertyType } from "@/types/database
 /** Arabic labels for the DB enum codes, shared across the admin UI. */
 export const propertyTypeLabels: Record<PropertyType, string> = {
   apartment: "شقة",
-  villa: "فيلا",
-  townhouse: "تاون هاوس",
   duplex: "دوبلكس",
   penthouse: "بنتهاوس",
   studio: "استوديو",
+  villa: "فيلا",
+  twin_house: "توين هاوس",
+  quattro_villa: "كواترو فيلا",
+  standalone_villa: "فيلا مستقلة",
+  townhouse: "تاون هاوس",
+  family_house: "فاميلي هاوس",
   chalet: "شاليه",
+  land: "أرض",
   office: "مكتب",
   shop: "محل تجاري",
-  land: "أرض",
 };
 
 export const listingTypeLabels: Record<ListingType, string> = {

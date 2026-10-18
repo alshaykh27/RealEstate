@@ -4,15 +4,19 @@ import type { ListingType, PropertyStatus, PropertyType } from "@/types/database
 export const LISTING_TYPES = ["sale", "rent"] as const;
 export const PROPERTY_TYPES = [
   "apartment",
-  "villa",
-  "townhouse",
   "duplex",
   "penthouse",
   "studio",
+  "villa",
+  "twin_house",
+  "quattro_villa",
+  "standalone_villa",
+  "townhouse",
+  "family_house",
   "chalet",
+  "land",
   "office",
   "shop",
-  "land",
 ] as const;
 export const PROPERTY_STATUSES = ["available", "sold", "rented"] as const;
 export const PROPERTY_SORTS = ["newest", "price-asc", "price-desc"] as const;

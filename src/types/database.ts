@@ -1,14 +1,18 @@
 export type PropertyType =
   | "apartment"
-  | "villa"
-  | "townhouse"
   | "duplex"
   | "penthouse"
   | "studio"
+  | "villa"
+  | "twin_house"
+  | "quattro_villa"
+  | "standalone_villa"
+  | "townhouse"
+  | "family_house"
   | "chalet"
+  | "land"
   | "office"
-  | "shop"
-  | "land";
+  | "shop";
 
 export type ListingType = "sale" | "rent";
 
