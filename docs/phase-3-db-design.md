@@ -65,8 +65,10 @@ Public read is `is_published and deleted_at is null`; `is_sample` no longer affe
   English. Added by `supabase/migrations/20261012120000_add_property_compound.sql`; powers the public
   compound filter. Filtering matches the language-neutral `compound_en` value, never translated text.
 - **Neutral:** `id`, `slug` (shared), `area_id` (FK), `created_by`; codes `property_type`,
-  `listing_type`, `status`; numbers `price`, `currency`, `area_sqm`, `bedrooms`, `bathrooms`,
-  `floor`, `year_built`, `latitude`, `longitude`; flags `is_published`, `is_featured`, `is_sample`;
+  `listing_type`, `status`; numbers `price`, `currency`, `area_sqm`, `land_area_sqm` (plot/land
+  size, m², nullable, `>= 0`, added by `supabase/migrations/20261018150000_add_land_area_sqm.sql`),
+  `bedrooms`, `bathrooms`, `floor`, `year_built`, `latitude`, `longitude`; flags `is_published`,
+  `is_featured`, `is_sample`;
   `created_at`, `updated_at`, `published_at`, `deleted_at` (soft delete; public reads exclude
   non-null `deleted_at`). `is_sample` marks placeholder rows to remove before launch and **does not**
   affect public visibility (only `is_published` + `deleted_at` do).
@@ -122,8 +124,8 @@ Public read is `is_published and deleted_at is null`; `is_sample` no longer affe
 
 - **Identifiers/keys:** `id`, `slug`, foreign keys, `storage_path`
 - **Codes/enums:** `property_type`, `listing_type`, `status` (labels via dictionaries)
-- **Numbers:** `price`, `currency`, `area_sqm`, `bedrooms`, `bathrooms`, `floor`, `year_built`,
-  `latitude`, `longitude`
+- **Numbers:** `price`, `currency`, `area_sqm`, `land_area_sqm`, `bedrooms`, `bathrooms`, `floor`,
+  `year_built`, `latitude`, `longitude`
 - **Flags:** `is_published`, `is_featured`, `is_sample`, `is_cover`, `is_active`
 - **Timestamps:** `created_at`, `updated_at`, `published_at`, `deleted_at`
 - **Contact handles:** `whatsapp_number`, `phone`, `email`, `facebook_url` (identical in both

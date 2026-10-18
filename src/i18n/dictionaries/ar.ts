@@ -55,6 +55,7 @@ const dictionary: Dictionary = {
     bedrooms: "غرف النوم",
     bathrooms: "الحمامات",
     area: "المساحة",
+    landArea: "مساحة الأرض",
     floor: "الطابق",
     yearBuilt: "سنة البناء",
     price: "السعر",

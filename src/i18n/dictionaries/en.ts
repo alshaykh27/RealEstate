@@ -54,6 +54,7 @@ const dictionary = {
     bedrooms: "Bedrooms",
     bathrooms: "Bathrooms",
     area: "Area",
+    landArea: "Land area",
     floor: "Floor",
     yearBuilt: "Year built",
     price: "Price",

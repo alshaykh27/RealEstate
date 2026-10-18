@@ -83,6 +83,7 @@ function messageForDbError(error: { code?: string; message?: string }): string {
     if (message.includes("latitude") || message.includes("longitude")) {
       return admin.form.errorCoordinates;
     }
+    if (message.includes("land_area_sqm")) return admin.form.errorLandArea;
     if (message.includes("area_sqm")) return admin.form.errorAreaSqm;
     if (message.includes("bedrooms") || message.includes("bathrooms")) return admin.form.errorRooms;
     return admin.form.errorOutOfRange;
@@ -101,6 +102,10 @@ function buildPayload(formData: FormData) {
   }
   if (priceRaw.length === 0 || !Number.isFinite(Number(priceRaw)) || Number(priceRaw) < 0) {
     return { error: admin.form.invalidPrice } as const;
+  }
+  const landAreaSqm = numOrNull(formData, "land_area_sqm");
+  if (landAreaSqm !== null && landAreaSqm < 0) {
+    return { error: admin.form.errorLandArea } as const;
   }
 
   return {
@@ -126,6 +131,7 @@ function buildPayload(formData: FormData) {
       price: Number(priceRaw),
       currency: str(formData, "currency") || "EGP",
       area_sqm: numOrNull(formData, "area_sqm"),
+      land_area_sqm: landAreaSqm,
       bedrooms: intOrNull(formData, "bedrooms"),
       bathrooms: intOrNull(formData, "bathrooms"),
       floor: intOrNull(formData, "floor"),

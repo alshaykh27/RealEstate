@@ -423,6 +423,66 @@ export function PropertyForm({ mode, action, areas, compounds = [], defaults }: 
         <h2 className="text-ink font-heading mb-5 text-lg font-semibold">
           {admin.form.sectionDetails}
         </h2>
+        <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Field label={admin.form.price} htmlFor="price" ltr>
+            <input
+              id="price"
+              name="price"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={v(defaults?.price)}
+              required
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label={admin.form.bedrooms} htmlFor="bedrooms" ltr>
+            <input
+              id="bedrooms"
+              name="bedrooms"
+              type="number"
+              min="0"
+              defaultValue={v(defaults?.bedrooms)}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label={admin.form.bathrooms} htmlFor="bathrooms" ltr>
+            <input
+              id="bathrooms"
+              name="bathrooms"
+              type="number"
+              min="0"
+              defaultValue={v(defaults?.bathrooms)}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label={admin.form.areaSqm} htmlFor="area_sqm" ltr>
+            <input
+              id="area_sqm"
+              name="area_sqm"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={v(defaults?.area_sqm)}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label={admin.form.landAreaSqm} htmlFor="land_area_sqm" ltr>
+            <input
+              id="land_area_sqm"
+              name="land_area_sqm"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={v(defaults?.land_area_sqm)}
+              className={inputClass}
+            />
+          </Field>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Field label={admin.form.slug} htmlFor="slug" hint={admin.form.slugHint} ltr>
             <input id="slug" name="slug" defaultValue={v(defaults?.slug)} className={inputClass} />
@@ -489,58 +549,11 @@ export function PropertyForm({ mode, action, areas, compounds = [], defaults }: 
             </select>
           </Field>
 
-          <Field label={admin.form.price} htmlFor="price" ltr>
-            <input
-              id="price"
-              name="price"
-              type="number"
-              min="0"
-              step="0.01"
-              defaultValue={v(defaults?.price)}
-              required
-              className={inputClass}
-            />
-          </Field>
-
           <Field label={admin.form.currency} htmlFor="currency" ltr>
             <input
               id="currency"
               name="currency"
               defaultValue={defaults?.currency ?? "EGP"}
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label={admin.form.areaSqm} htmlFor="area_sqm" ltr>
-            <input
-              id="area_sqm"
-              name="area_sqm"
-              type="number"
-              min="0"
-              step="0.01"
-              defaultValue={v(defaults?.area_sqm)}
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label={admin.form.bedrooms} htmlFor="bedrooms" ltr>
-            <input
-              id="bedrooms"
-              name="bedrooms"
-              type="number"
-              min="0"
-              defaultValue={v(defaults?.bedrooms)}
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label={admin.form.bathrooms} htmlFor="bathrooms" ltr>
-            <input
-              id="bathrooms"
-              name="bathrooms"
-              type="number"
-              min="0"
-              defaultValue={v(defaults?.bathrooms)}
               className={inputClass}
             />
           </Field>

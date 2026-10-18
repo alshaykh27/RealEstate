@@ -128,6 +128,7 @@ export const admin = {
     price: "السعر",
     currency: "العملة",
     areaSqm: "المساحة (م²)",
+    landAreaSqm: "مساحة الأرض (م²)",
     bedrooms: "غرف النوم",
     bathrooms: "الحمّامات",
     floor: "الطابق",
@@ -152,6 +153,7 @@ export const admin = {
     errorCoordinates:
       "إحداثيات الموقع غير صحيحة (خط العرض من −90 إلى 90، وخط الطول من ‎−180‎ إلى 180).",
     errorAreaSqm: "المساحة لا يمكن أن تكون بالسالب.",
+    errorLandArea: "مساحة الأرض لا يمكن أن تكون بالسالب.",
     errorRooms: "عدد غرف النوم والحمّامات لا يمكن أن يكون بالسالب.",
     errorOutOfRange: "قيمة رقمية خارج النطاق المسموح.",
     errorTooLong: "أحد الحقول أطول من الحد المسموح.",

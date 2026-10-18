@@ -69,6 +69,7 @@ export interface Property {
   price: number;
   currency: string;
   area_sqm: number | null;
+  land_area_sqm: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
   floor: number | null;
@@ -105,6 +106,7 @@ export type PropertyListItem = Pick<
   | "price"
   | "currency"
   | "area_sqm"
+  | "land_area_sqm"
   | "bedrooms"
   | "bathrooms"
   | "is_featured"

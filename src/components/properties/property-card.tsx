@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PropertyImage } from "@/components/properties/property-image";
 import { StatusBadge } from "@/components/properties/status-badge";
 import type { Locale } from "@/i18n/config";
-import type { Dictionary } from "@/i18n/dictionaries";
+import { fieldLabel, type Dictionary } from "@/i18n/dictionaries";
 import {
   coverImage,
   formatArea,
@@ -89,6 +89,11 @@ export function PropertyCard({
             </span>
           ) : null}
           {property.area_sqm !== null ? <span>{formatArea(locale, property.area_sqm)}</span> : null}
+          {property.land_area_sqm !== null ? (
+            <span>
+              {fieldLabel(dict, "landArea")}: {formatArea(locale, property.land_area_sqm)}
+            </span>
+          ) : null}
         </div>
 
         <div className="border-line mt-auto flex items-center justify-between gap-2 border-t pt-3">

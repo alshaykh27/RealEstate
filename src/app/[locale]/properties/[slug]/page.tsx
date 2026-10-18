@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/properties/status-badge";
 import { WhatsAppIcon } from "@/components/icons/social";
 import { Reveal } from "@/components/motion/reveal";
 import { isLocale } from "@/i18n/config";
-import { getDictionary } from "@/i18n/dictionaries";
+import { fieldLabel, getDictionary } from "@/i18n/dictionaries";
 import { whatsappUrl } from "@/lib/contact";
 import {
   formatArea,
@@ -169,6 +169,12 @@ async function PropertyDetail({ params }: { params: Promise<{ locale: string; sl
               ) : null}
               {property.area_sqm !== null ? (
                 <Detail label={dict.fields.area} value={formatArea(locale, property.area_sqm)} />
+              ) : null}
+              {property.land_area_sqm !== null ? (
+                <Detail
+                  label={fieldLabel(dict, "landArea")}
+                  value={formatArea(locale, property.land_area_sqm)}
+                />
               ) : null}
               {property.floor !== null ? (
                 <Detail label={dict.fields.floor} value={String(property.floor)} />

@@ -50,6 +50,7 @@ const LIST_SELECT = [
   "price",
   "currency",
   "area_sqm",
+  "land_area_sqm",
   "bedrooms",
   "bathrooms",
   "is_featured",
